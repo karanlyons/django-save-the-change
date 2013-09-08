@@ -23,7 +23,13 @@ class EnlightenedModel(SaveTheChange, TrackChanges, models.Model):
 #	image = models.ImageField(upload_to='./')
 	integer = models.IntegerField()
 	IP_address = models.IPAddressField()
-	generic_IP = models.GenericIPAddressField()
+	
+	try:
+		generic_IP = models.GenericIPAddressField()
+	
+	except:
+		pass
+	
 	null_boolean = models.NullBooleanField()
 	positive_integer = models.PositiveIntegerField()
 	positive_small_integer = models.PositiveSmallIntegerField()

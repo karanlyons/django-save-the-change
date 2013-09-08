@@ -8,6 +8,7 @@ from decimal import Decimal
 
 from django.core.files import File
 from django.core.files.images import ImageFile
+from django.db import models
 from django.db.models.fields.files import FieldFile, ImageFieldFile
 from django.test import TestCase
 
@@ -40,7 +41,6 @@ class EnlightenedModelTestCase(TestCase):
 #			'image': ImageFile(open(self.penny_front), 'penny_front_image.png'),
 			'integer': 42,
 			'IP_address': '127.0.0.1',
-			'generic_IP': '::1',
 			'null_boolean': None,
 			'positive_integer': 1,
 			'positive_small_integer': 2,
@@ -66,7 +66,6 @@ class EnlightenedModelTestCase(TestCase):
 #			'image': ImageFile(open(self.penny_back), 'penny_back_image.png'),
 			'integer': 108,
 			'IP_address': '255.255.255.255',
-			'generic_IP': 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',
 			'null_boolean': True,
 			'positive_integer': 5,
 			'positive_small_integer': 6,
@@ -76,6 +75,15 @@ class EnlightenedModelTestCase(TestCase):
 			'time': datetime.time(0, 0, 0),
 			'URL': 'https://github.com/karanlyons/django-save-the-change',
 		}
+		
+		try:
+			models.GenericIPAddressField()
+			
+			self.old_values['generic_IP'] = '::1'
+			self.new_values['generic_IP'] = 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+		
+		except:
+			pass
 	
 	def create_initial(self):
 		self.tearDown()
