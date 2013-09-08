@@ -95,7 +95,7 @@ class EnlightenedModelTestCase(TestCase):
 	def create_changed(self):
 		m = self.create_initial()
 		
-		for field_name, value in self.new_values.iteritems():
+		for field_name, value in self.new_values.items():
 			setattr(m, field_name, value)
 		
 		return m
@@ -103,7 +103,7 @@ class EnlightenedModelTestCase(TestCase):
 	def create_reverted(self):
 		m = self.create_changed()
 		
-		for field_name, value in self.old_values.iteritems():
+		for field_name, value in self.old_values.items():
 			setattr(m, field_name, value)
 		
 		return m
