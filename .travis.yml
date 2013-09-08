@@ -12,12 +12,13 @@ env:
   - DJANGO=1.5.2
 
 install:
+  - pip install -q coveralls --use-mirrors
   - pip install -q pillow --use-mirrors
   - pip install -q django==$DJANGO --use-mirrors
   - pip install -q -e . --use-mirrors
 
 script:
-  - python setup.py test
+  - coverage run --source=save_the_change setup.py test
 
 matrix:
   exclude:
@@ -29,3 +30,6 @@ matrix:
       env: DJANGO=1.3.7
     - python: "3.3"
       env: DJANGO=1.4.6
+
+after_success:
+  - coveralls
