@@ -21,7 +21,7 @@ if sys.version_info >= (3,):
 setup(
 	name="django-save-the-change",
 	version="1.0.0",
-	description="Automatically save only changed model fields.",
+	description="Automatically save only changed model data.",
 	long_description="\n\n".join([open('README.rst', 'rU').read(), open('HISTORY.rst', 'rU').read()]),
 	author="Karan Lyons",
 	author_email="karan@karanlyons.com",
