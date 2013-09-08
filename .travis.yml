@@ -1,0 +1,23 @@
+language: python
+
+python:
+  - "2.6"
+  - "2.7"
+  - "3.2"
+  - "3.3"
+
+env:
+  - DJANGO=1.5.2
+
+install:
+  - pip install -q coveralls --use-mirrors
+  - pip install -q pytz==2013d --use-mirrors
+  - pip install -q pillow --use-mirrors
+  - pip install -q django==$DJANGO --use-mirrors
+  - pip install -q -e . --use-mirrors
+
+script:
+  - coverage run --source=save_the_change setup.py test
+
+after_success:
+  - coveralls

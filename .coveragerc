@@ -1,0 +1,24 @@
+[run]
+branch = True
+
+
+[report]
+exclude_lines =
+	# Re-enable pragma
+	pragma: no cover
+	
+	# Debug only
+	def __repr__
+	if self\.debug
+	if DEBUG
+	
+	# Assertions
+	raise AssertionError
+	raise NotImplementedError
+	
+	# Unrunnable
+	if False:
+	if __name__ == .__main__.:
+	
+	# Used only in _name_map blocks
+	except AttributeError
