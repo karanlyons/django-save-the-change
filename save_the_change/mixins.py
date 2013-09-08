@@ -114,7 +114,7 @@ class SaveTheChange(BaseChangeTracker):
 		"""
 		
 		if self.pk and hasattr(self, '_changed_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
-			kwargs['update_fields'] = [key for key, value in self._changed_fields.iteritems() if value is not DoesNotExist]
+			kwargs['update_fields'] = [key for key, value in self._changed_fields.iteritems() if hasattr(self, key)]
 		
 		super(SaveTheChange, self).save(*args, **kwargs)
 
