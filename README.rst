@@ -13,9 +13,9 @@ Save The Change takes this:
 
 .. code-block:: pycon
 
-	lancelot = Knight.objects.get(name="Sir Lancelot")
-	lancelot.favorite_color = "Blue"
-	lancelot.save()
+	>>> lancelot = Knight.objects.get(name="Sir Lancelot")
+	>>> lancelot.favorite_color = "Blue"
+	>>> lancelot.save()
 
 
 And does this:
