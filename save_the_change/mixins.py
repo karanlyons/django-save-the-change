@@ -33,7 +33,7 @@ class BaseChangeTracker(object):
 	removed from :attr:`._changed_fields`. Thus, overhead is kept at a minimum.
 	
 	A caveat: This can't do anything to help you with
-	:class:`~django.db.models.ManyToManyField` nor reverse relationships, which
+	:class:`~django.db.models.ManyToManyField`s nor reverse relationships, which
 	is par for the course: they aren't handled by
 	:meth:`~django.db.models.Model.save`, but are pushed to the database
 	immediately when changed.
