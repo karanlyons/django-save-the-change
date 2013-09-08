@@ -11,6 +11,7 @@ env:
 
 install:
   - pip install -q coveralls --use-mirrors
+  - pip install -q pytz==2013b --use-mirrors
   - pip install -q pillow --use-mirrors
   - pip install -q django==$DJANGO --use-mirrors
   - pip install -q -e . --use-mirrors
