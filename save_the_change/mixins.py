@@ -138,11 +138,11 @@ class TrackChanges(BaseChangeTracker):
 	@property
 	def changed_fields(self):
 		"""
-		A :py:obj:`list` of changed fields.
+		A :py:obj:`tuple` of changed fields.
 		
 		"""
 		
-		return self._changed_fields.keys()
+		return tuple(self._changed_fields.keys())
 	
 	@property
 	def old_values(self):
