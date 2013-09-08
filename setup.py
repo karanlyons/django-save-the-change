@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import sys
-
 import save_the_change
 
 
@@ -15,10 +13,6 @@ install_requires = []
 for line in open('requirements.txt', 'rU').readlines():
 	if line and line not in '\n' and not line.startswith(('#', '-')):
 		install_requires.append(line.replace('\n', ''))
-
-kwargs = {}
-if sys.version_info >= (3,):
-	kwargs['use_2to3'] = True
 
 setup(
 	name="django-save-the-change",
@@ -49,5 +43,4 @@ setup(
 		'Programming Language :: Python :: 3.3',
 	),
 	test_suite='tests.test.run_tests',
-	**kwargs
 )

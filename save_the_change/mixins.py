@@ -6,6 +6,7 @@ from copy import copy
 
 from django.db.models import ManyToManyField
 from django.db.models.related import RelatedObject
+from django.utils.six import iteritems
 
 
 __all__ = ('SaveTheChange', 'TrackChanges')
@@ -114,7 +115,7 @@ class SaveTheChange(BaseChangeTracker):
 		"""
 		
 		if self.pk and hasattr(self, '_changed_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
-			kwargs['update_fields'] = [key for key, value in self._changed_fields.iteritems() if hasattr(self, key)]
+			kwargs['update_fields'] = [key for key, value in iteritems(self._changed_fields) if hasattr(self, key)]
 		
 		super(SaveTheChange, self).save(*args, **kwargs)
 
