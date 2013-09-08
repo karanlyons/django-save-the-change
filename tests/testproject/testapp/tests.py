@@ -87,10 +87,14 @@ class EnlightenedModelTestCase(TestCase):
 	
 	def create_initial(self):
 		self.tearDown()
-		self.old_values['id'] = None
-		self.new_values['id'] = None
 		
-		return EnlightenedModel(**self.old_values)
+		m = EnlightenedModel(**self.old_values)
+		m.save()
+		
+		self.old_values['id'] = m.id
+		self.new_values['id'] = m.id
+
+		return m
 	
 	def create_changed(self):
 		m = self.create_initial()
