@@ -14,7 +14,8 @@ __all__ = ('SaveTheChange', 'TrackChanges')
 class DoesNotExist:
 	"""
 	It's unlikely, but there could potentially be a time when a field is added
-	to or removed from an instance. We need some representation for those cases.
+	to or removed from an instance. This class represents a field in a state of
+	nonexistance, just in case we ever run into it.
 	
 	"""
 	
@@ -22,12 +23,33 @@ class DoesNotExist:
 
 
 class BaseChangeTracker(object):
+	"""
+	Adds a :py:class:`dict` named :attr:`._changed_fields` to the model, which
+	stores fields that have changed. The key is the field name, and the value
+	the original value of the field from the database.
+	
+	If the value of a field is changed back to its original value, its entry is
+	removed from :attr:`._changed_fields`. Thus, overhead is kept at a minimum.
+	
+	A caveat: This can't do anything to help you with
+	:class:`~django.db.models.ManyToManyField` nor reverse relationships, which
+	is par for the course: they aren't handled by
+	:meth:`~django.db.models.Model.save`, but are pushed to the database
+	immediately when changed.
+	
+	"""
+	
 	def __init__(self, *args, **kwargs):
 		super(BaseChangeTracker, self).__init__(*args, **kwargs)
 		
-		self._changed_fields = {}
+		self._changed_fields = {} #: A :py:class:`dict` storing changed fields.
 	
 	def __setattr__(self, name, value):
+		"""
+		Updates :attr:`._changed_fields` when new values are set for fields.
+		
+		"""
+		
 		if hasattr(self, '_changed_fields'):
 			try:
 				name_map = self._meta._name_map
@@ -51,7 +73,7 @@ class BaseChangeTracker(object):
 					
 					if name in changed_fields:
 						if changed_fields[name] == new:
-							# We've changed this field back to its original value from the db. No need to push it back up.
+							# We've changed this field back to its original value from the database. No need to push it back up.
 							changed_fields.pop(name)
 					
 					else:
@@ -64,6 +86,11 @@ class BaseChangeTracker(object):
 			super(BaseChangeTracker, self).__setattr__(name, value)
 	
 	def save(self, *args, **kwargs):
+		"""
+		Clears :attr:`._changed_fields`.
+		
+		"""
+		
 		super(BaseChangeTracker, self).save(*args, **kwargs)
 		
 		self._changed_fields = {}
@@ -71,18 +98,21 @@ class BaseChangeTracker(object):
 
 class SaveTheChange(BaseChangeTracker):
 	"""
-	Keeps track of fields that have changed since model instantiation, and on
-	save updates only those fields.
+	A model mixin that keeps track of fields that have changed since model
+	instantiation, and when saved updates only those fields.
 	
-	If save is called with update_fields, the passed kwarg is given precedence.
-	
-	A caveat: This can't do anything to help you with ManyToManyFields nor
-	reverse relationships, which is par for the course: they aren't handled by
-	save(), but are pushed to the db immediately on change.
+	If :meth:`~django.db.models.Model.save` is called with ``update_fields``,
+	the passed ``kwarg`` is given precedence. Similarly, if ``force_insert`` is
+	set, ``update_fields`` will not be.
 	
 	"""
 	
 	def save(self, *args, **kwargs):
+		"""
+		Builds and passes the ``update_fields`` kwarg to Django.
+		
+		"""
+		
 		if self.pk and hasattr(self, '_changed_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
 			kwargs['update_fields'] = [key for key, value in self._changed_fields.iteritems() if value is not DoesNotExist]
 		
@@ -99,7 +129,7 @@ class TrackChanges(BaseChangeTracker):
 	@property
 	def has_changed(self):
 		"""
-		A bool indicating if any fields have changed.
+		A :py:obj:`bool` indicating if any fields have changed.
 		
 		"""
 		
@@ -108,7 +138,7 @@ class TrackChanges(BaseChangeTracker):
 	@property
 	def changed_fields(self):
 		"""
-		A list of changed fields.
+		A :py:obj:`list` of changed fields.
 		
 		"""
 		
@@ -117,7 +147,7 @@ class TrackChanges(BaseChangeTracker):
 	@property
 	def old_values(self):
 		"""
-		A dict of the old field values.
+		A :py:class:`dict` of the old field values.
 		
 		"""
 		
@@ -129,7 +159,7 @@ class TrackChanges(BaseChangeTracker):
 	@property
 	def new_values(self):
 		"""
-		A dict of the new field values.
+		A :py:class:`dict` of the new field values.
 		
 		"""
 		
@@ -145,7 +175,7 @@ class TrackChanges(BaseChangeTracker):
 		"""
 		Reverts supplied fields to their original values.
 		
-		:param list fields: A list of field names to revert.
+		:param list fields: Fields to revert.
 		
 		"""
 		

@@ -32,28 +32,28 @@ Instead of this:
 
 	UPDATE "roundtable_knight"
 	SET "name" = 'Sir Lancelot',
-		"from" = 'Camelot',
-		"quest" = 'To seek the Holy Grail.',
-		"favorite_color" = 'Blue',
-		"epithet" = 'The brave',
-		"actor" = 'John Cleese',
-		"full_name" = 'John Marwood Cleese',
-		"height" = '6''11"',
-		"birth_date" = '1939-10-27',
-		"birth_union" = 'UK',
-		"birth_country" = 'England',
-		"birth_county" = 'Somerset',
-		"birth_town" = 'Weston-Super-Mare',
-		"facial_hair" = 'mustache',
-		"graduated" = true,
-		"university" = 'Cambridge University',
-		"degree" = 'LL.B.',
+	    "from" = 'Camelot',
+	    "quest" = 'To seek the Holy Grail.',
+	    "favorite_color" = 'Blue',
+	    "epithet" = 'The brave',
+	    "actor" = 'John Cleese',
+	    "full_name" = 'John Marwood Cleese',
+	    "height" = '6''11"',
+	    "birth_date" = '1939-10-27',
+	    "birth_union" = 'UK',
+	    "birth_country" = 'England',
+	    "birth_county" = 'Somerset',
+	    "birth_town" = 'Weston-Super-Mare',
+	    "facial_hair" = 'mustache',
+	    "graduated" = true,
+	    "university" = 'Cambridge University',
+	    "degree" = 'LL.B.',
 
 
 Installation
 ============
 
-Install STC just like everything else:
+Install Save The Change just like everything else:
 
 .. code-block:: bash
 

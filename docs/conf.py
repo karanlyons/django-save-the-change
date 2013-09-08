@@ -8,6 +8,9 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.append(os.path.abspath('_themes'))
 
+sys.path.append(os.path.abspath('../tests'))
+os.environ['DJANGO_SETTINGS_MODULE'] = 'testproject.settings'
+
 
 project = "Save The Change"
 copyright = "2013, Karan Lyons"
@@ -20,7 +23,10 @@ extensions = [
 	'sphinx.ext.viewcode',
 	'sphinx.ext.coverage'
 ]
-intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}
+intersphinx_mapping = {
+	'python': ('http://docs.python.org/2.7', None),
+	'django': ('https://docs.djangoproject.com/en/1.5', 'https://docs.djangoproject.com/en/1.5/_objects'),
+}
 templates_path = ['_templates']
 exclude_patterns = ['_build']
 html_theme_path = ['_themes']
