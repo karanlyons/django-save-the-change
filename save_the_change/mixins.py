@@ -35,7 +35,7 @@ class BaseChangeTracker(object):
 			except AttributeError:
 				name_map = self._meta.init_name_map()
 			
-			if name in name_map and name_map[name][0].__class__ not in {ManyToManyField, RelatedObject}:
+			if name in name_map and name_map[name][0].__class__ not in (ManyToManyField, RelatedObject):
 				old = getattr(self, name, DoesNotExist)
 				super(BaseChangeTracker, self).__setattr__(name, value) # A parent's __setattr__ may change value.
 				new = getattr(self, name, DoesNotExist)
