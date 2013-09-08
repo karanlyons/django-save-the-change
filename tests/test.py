@@ -6,6 +6,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 os.environ['DJANGO_SETTINGS_MODULE'] = 'testproject.settings'
 
 from django.test.utils import get_runner
@@ -14,6 +15,7 @@ from django.conf import settings
 
 def run_tests():
 	sys.exit(bool(get_runner(settings)(verbosity=1, interactive=True).run_tests(['testapp'])))
+
 
 if __name__ == '__main__':
 	run_tests()

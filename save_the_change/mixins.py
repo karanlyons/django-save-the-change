@@ -6,6 +6,7 @@ from copy import copy
 
 from django.db.models import ManyToManyField
 from django.db.models.related import RelatedObject
+from django.utils.six import iteritems
 
 
 __all__ = ('SaveTheChange', 'TrackChanges')
@@ -65,7 +66,7 @@ class BaseChangeTracker(object):
 				try:
 					changed = (old != new)
 				
-				except:
+				except: # pragma: no cover (covers naive/aware datetime comparison failure; unreachable in py3)
 					changed = True
 				
 				if changed:
@@ -114,7 +115,7 @@ class SaveTheChange(BaseChangeTracker):
 		"""
 		
 		if self.pk and hasattr(self, '_changed_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
-			kwargs['update_fields'] = [key for key, value in self._changed_fields.iteritems() if value is not DoesNotExist]
+			kwargs['update_fields'] = [key for key, value in iteritems(self._changed_fields) if hasattr(self, key)]
 		
 		super(SaveTheChange, self).save(*args, **kwargs)
 
@@ -138,11 +139,11 @@ class TrackChanges(BaseChangeTracker):
 	@property
 	def changed_fields(self):
 		"""
-		A :py:obj:`list` of changed fields.
+		A :py:obj:`tuple` of changed fields.
 		
 		"""
 		
-		return self._changed_fields.keys()
+		return tuple(self._changed_fields.keys())
 	
 	@property
 	def old_values(self):

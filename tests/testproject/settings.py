@@ -18,6 +18,7 @@ DATABASES = {
 }
 
 TIME_ZONE = 'UTC'
+USE_TZ = True
 
 MEDIA_ROOT = os.path.join(os.path.dirname(__file__), 'uploads')
 

@@ -4,6 +4,7 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 
 import os
 import datetime
+import pytz
 from decimal import Decimal
 
 from django.core.files import File
@@ -58,7 +59,7 @@ class EnlightenedModelTestCase(TestCase):
 			'char': 'Three fiddy',
 			'comma_seperated_integer': '16,23,42',
 			'date': datetime.date(2000, 1, 1),
-			'date_time': datetime.datetime(2000, 1, 1, 0, 0, 0),
+			'date_time': pytz.utc.localize(datetime.datetime(2000, 1, 1, 0, 0, 0)),
 			'decimal': Decimal('3.50'),
 			'email': 'maitreya@unknown.org',
 #			'file': File(open(self.penny_back), 'penny_back_file.png'),
@@ -123,7 +124,7 @@ class EnlightenedModelTestCase(TestCase):
 	def test_initial_changed_fields(self):
 		m = self.create_initial()
 		
-		self.assertEquals(m.changed_fields, [])
+		self.assertEquals(m.changed_fields, ())
 	
 	def test_initial_has_changed(self):
 		m = self.create_initial()
@@ -184,7 +185,7 @@ class EnlightenedModelTestCase(TestCase):
 	def test_reverted_changed_fields(self):
 		m = self.create_reverted()
 		
-		self.assertEquals(m.changed_fields, [])
+		self.assertEquals(m.changed_fields, ())
 	
 	def test_reverted_has_changed(self):
 		m = self.create_reverted()
@@ -209,7 +210,7 @@ class EnlightenedModelTestCase(TestCase):
 	def test_saved_changed_fields(self):
 		m = self.create_saved()
 		
-		self.assertEquals(m.changed_fields, [])
+		self.assertEquals(m.changed_fields, ())
 	
 	def test_saved_has_changed(self):
 		m = self.create_saved()
@@ -225,6 +226,14 @@ class EnlightenedModelTestCase(TestCase):
 		m = self.create_saved()
 		
 		self.assertEquals(m.old_values, self.new_values)
+	
+	def test_changed_twice_new_values(self):
+		m = self.create_changed()
+		new_values = self.new_values
+		m.text = 'newer'
+		self.new_values['text'] = 'newer'
+		
+		self.assertEquals(m.new_values, self.new_values)
 	
 	def tearDown(self):
 		for file_name in os.listdir(self.uploads):
