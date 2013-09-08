@@ -133,7 +133,7 @@ class TrackChanges(BaseChangeTracker):
 		except AttributeError:
 			name_map = self._meta.init_name_map()
 		
-		return {field: getattr(self, field) for field in name_map}
+		return dict([(field, getattr(self, field)) for field in name_map])
 	
 	def revert_fields(self, fields=None):
 		"""
