@@ -63,7 +63,7 @@ Install Save The Change just like everything else:
 Usage
 =====
 
-Just add SaveTheChange to your model:
+Just add :class:`~save_the_change.mixins.SaveTheChange` to your model:
 
 .. code-block:: python
 
@@ -84,7 +84,7 @@ How It Works
 Save The Change overloads ``__setattr__`` and keeps track of what fields have
 changed from their stored value in your database. When you
 call :meth:`~django.db.models.Model.save`, Save The Change passes those
-changed fields through Django's ``update_fields`` kwarg, and Django does the
+changed fields through Django's ``update_fields`` ``kwarg``, and Django does the
 rest, sending only those fields back to the database.
 
 
@@ -99,9 +99,11 @@ through :meth:`~django.db.models.Model.save`. But everything else'll work.
 Goodies
 =======
 
-Save The Change also comes with a second mixin, ``TrackChanges``. Adding
-``TrackChanges`` to your model will expose a few new properties and methods for
-tracking and manually reverting changes to your model before you save it.
+Save The Change also comes with a second mixin,
+:class:`~save_the_change.mixins.TrackChanges`. Adding
+:class:`~save_the_change.mixins.TrackChanges` to your model will expose a few
+new properties and methods for tracking and manually reverting changes to your
+model before you save it.
 
 
 Developer Interface
