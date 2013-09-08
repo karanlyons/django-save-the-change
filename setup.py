@@ -2,6 +2,8 @@
 
 import sys
 
+import save_the_change
+
 
 try:
 	from setuptools import setup
@@ -20,12 +22,12 @@ if sys.version_info >= (3,):
 
 setup(
 	name="django-save-the-change",
-	version="1.0.0",
+	version=save_the_change.__version__,
 	description="Automatically save only changed model data.",
 	long_description="\n\n".join([open('README.rst', 'rU').read(), open('HISTORY.rst', 'rU').read()]),
-	author="Karan Lyons",
-	author_email="karan@karanlyons.com",
-	url="https://github.com/karanlyons/django-save-the-change",
+	author=save_the_change.__author__,
+	author_email=save_the_change.__contact__,
+	url=save_the_change.__homepage__,
 	license=open('LICENSE', 'rU').read(),
 	packages=['save_the_change'],
 	package_dir={'save_the_change': 'save_the_change'},
