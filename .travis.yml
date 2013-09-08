@@ -1,16 +1,31 @@
 language: python
+
 python:
   - "2.6"
   - "2.7"
   - "3.2"
   - "3.3"
+
 env:
   - DJANGO=1.3.7
   - DJANGO=1.4.6
   - DJANGO=1.5.2
+
 install:
   - pip install -q pillow --use-mirrors
-  - pip install -q Django==$DJANGO --use-mirrors
+  - pip install -q django==$DJANGO --use-mirrors
   - pip install -q -e . --use-mirrors
+
 script:
   - python setup.py test
+
+matrix:
+  exclude:
+    - python: "3.2"
+      env: DJANGO=1.3.7
+      - python: "3.2"
+      env: DJANGO=1.4.6
+      - python: "3.3"
+      env: DJANGO=1.3.7
+      - python: "3.3"
+      env: DJANGO=1.4.6
