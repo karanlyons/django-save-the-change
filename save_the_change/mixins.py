@@ -40,7 +40,13 @@ class BaseChangeTracker(object):
 				super(BaseChangeTracker, self).__setattr__(name, value) # A parent's __setattr__ may change value.
 				new = getattr(self, name, DoesNotExist)
 				
-				if old != new:
+				try:
+					changed = (old != new)
+				
+				except:
+					changed = True
+				
+				if changed:
 					changed_fields = self._changed_fields
 					
 					if name in changed_fields:
