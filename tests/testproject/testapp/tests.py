@@ -227,6 +227,14 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.assertEquals(m.old_values, self.new_values)
 	
+	def test_changed_twice_new_values(self):
+		m = self.create_changed()
+		new_values = self.new_values
+		m.text = 'newer'
+		self.new_values['text'] = 'newer'
+		
+		self.assertEquals(m.new_values, self.new_values)
+	
 	def tearDown(self):
 		for file_name in os.listdir(self.uploads):
 			if file_name.endswith('.png'):

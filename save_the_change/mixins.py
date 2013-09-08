@@ -66,7 +66,7 @@ class BaseChangeTracker(object):
 				try:
 					changed = (old != new)
 				
-				except:
+				except: # pragma: no cover (covers naive/aware datetime comparison failure; unreachable in py3)
 					changed = True
 				
 				if changed:
