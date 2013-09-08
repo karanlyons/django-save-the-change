@@ -9,6 +9,11 @@ try:
 except ImportError:
 	from distutils.core import setup
 
+install_requires = []
+for line in open('requirements.txt', 'rU').readlines():
+	if line and line not in '\n' and not line.startswith(('#', '-')):
+		install_requires.append(line.replace('\n', ''))
+
 kwargs = {}
 if sys.version_info >= (3,):
 	kwargs['use_2to3'] = True
@@ -26,7 +31,7 @@ setup(
 	package_dir={'save_the_change': 'save_the_change'},
 	package_data={'': ['README.rst', 'HISTORY.rst', 'LICENSE']},
 	include_package_data=True,
-	install_requires=[],
+	install_requires=install_requires,
 	zip_safe=False,
 	classifiers=(
 		'Development Status :: 5 - Production/Stable',
