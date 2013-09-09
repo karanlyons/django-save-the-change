@@ -91,7 +91,7 @@ rest, sending only those fields back to the database.
 Caveats
 =======
 
-Save The Change can't help you with :class:`~django.db.models.ManyToManyField`
+Save The Change can't help you with :class:`~django.db.models.ManyToManyField`\s
 nor reverse relations, as those aren't handled
 through :meth:`~django.db.models.Model.save`. But everything else'll work.
 
