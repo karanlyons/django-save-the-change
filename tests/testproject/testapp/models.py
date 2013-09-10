@@ -5,10 +5,10 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 import os
 
 from django.db import models
-from save_the_change.mixins import SaveTheChange, TrackChanges
+from save_the_change.mixins import SaveTheChange, TrackChanges, UpdateTogether
 
 
-class EnlightenedModel(SaveTheChange, TrackChanges, models.Model):
+class EnlightenedModel(SaveTheChange, UpdateTogether, TrackChanges, models.Model):
 	big_integer = models.BigIntegerField()
 	boolean = models.BooleanField()
 	char = models.CharField(max_length=32)

@@ -2,6 +2,7 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
+from collections import defaultdict
 from copy import copy
 
 from django.db.models import ManyToManyField
@@ -183,3 +184,57 @@ class TrackChanges(BaseChangeTracker):
 		for field in fields:
 			if field in self._changed_fields:
 				setattr(self, field, self._changed_fields[field])
+
+
+class UpdateTogetherMeta(type):
+	def __new__(cls, name, bases, attrs):
+		if not [b for b in bases if isinstance(b, UpdateTogetherMeta)]:
+			return super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
+		
+		else:
+			update_together = ()
+			
+			if 'Meta' in attrs and attrs['Meta'].__module__ != 'django.db.models.query_utils': # Deferred fields won't have our model's Meta.
+				meta = attrs.get('Meta')
+			
+			else:
+				for base in bases:
+					if issubclass(base, UpdateTogether) and base is not UpdateTogether:
+						meta = getattr(base, '_meta')
+						
+						break
+			
+			if meta and hasattr(meta, 'update_together'):
+				update_together = getattr(meta, 'update_together')
+				delattr(meta, 'update_together')
+			
+			new_class = super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
+			
+			mapping = defaultdict(set)
+			for codependents in update_together:
+				for dependent in codependents:
+					mapping[dependent].update(codependents)
+			
+			update_together = mapping
+			
+			if meta:
+				setattr(meta, 'update_together', update_together)
+			
+			setattr(new_class._meta, 'update_together', update_together)
+			
+			return new_class
+
+
+class UpdateTogether(BaseChangeTracker):
+	__metaclass__ = UpdateTogetherMeta
+	
+	def save(self, *args, **kwargs):
+		if 'update_fields' in kwargs:
+			update_fields = set()
+			
+			for field in kwargs['update_fields']:
+				update_fields.update(self._meta.update_together[field])
+			
+			kwargs['update_fields'] = list(update_fields)
+		
+		super(UpdateTogether, self).save(*args, **kwargs)
