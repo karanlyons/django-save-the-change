@@ -6,7 +6,7 @@ from collections import defaultdict
 from copy import copy
 
 from django.db import models
-from django.utils.six import iteritems
+from django.utils import six
 
 
 __all__ = ('SaveTheChange', 'TrackChanges')
@@ -115,7 +115,7 @@ class SaveTheChange(BaseChangeTracker):
 		"""
 		
 		if self.pk and hasattr(self, '_changed_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
-			kwargs['update_fields'] = [key for key, value in iteritems(self._changed_fields) if hasattr(self, key)]
+			kwargs['update_fields'] = [key for key, value in six.iteritems(self._changed_fields) if hasattr(self, key)]
 		
 		super(SaveTheChange, self).save(*args, **kwargs)
 
@@ -202,7 +202,6 @@ class UpdateTogetherMeta(models.base.ModelBase):
 						meta = getattr(base, '_meta')
 						
 						break
-			
 			if meta and hasattr(meta, 'update_together'):
 				update_together = getattr(meta, 'update_together')
 				delattr(meta, 'update_together')
@@ -224,9 +223,7 @@ class UpdateTogetherMeta(models.base.ModelBase):
 			return new_class
 
 
-class UpdateTogetherModel(BaseChangeTracker, models.Model):
-	__metaclass__ = UpdateTogetherMeta
-	
+class UpdateTogetherModel(BaseChangeTracker, models.Model, six.with_metaclass(UpdateTogetherMeta)):
 	def save(self, *args, **kwargs):
 		if 'update_fields' in kwargs:
 			update_fields = set()
