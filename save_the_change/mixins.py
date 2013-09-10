@@ -202,6 +202,7 @@ class UpdateTogetherMeta(models.base.ModelBase):
 						meta = getattr(base, '_meta')
 						
 						break
+			
 			if meta and hasattr(meta, 'update_together'):
 				update_together = getattr(meta, 'update_together')
 				delattr(meta, 'update_together')
