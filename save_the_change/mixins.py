@@ -5,8 +5,7 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 from collections import defaultdict
 from copy import copy
 
-from django.db.models import ManyToManyField
-from django.db.models.related import RelatedObject
+from django.db import models
 from django.utils.six import iteritems
 
 
@@ -59,7 +58,7 @@ class BaseChangeTracker(object):
 			except AttributeError:
 				name_map = self._meta.init_name_map()
 			
-			if name in name_map and name_map[name][0].__class__ not in (ManyToManyField, RelatedObject):
+			if name in name_map and name_map[name][0].__class__ not in (models.ManyToManyField, models.related.RelatedObject):
 				old = getattr(self, name, DoesNotExist)
 				super(BaseChangeTracker, self).__setattr__(name, value) # A parent's __setattr__ may change value.
 				new = getattr(self, name, DoesNotExist)
@@ -186,7 +185,7 @@ class TrackChanges(BaseChangeTracker):
 				setattr(self, field, self._changed_fields[field])
 
 
-class UpdateTogetherMeta(type):
+class UpdateTogetherMeta(models.base.ModelBase):
 	def __new__(cls, name, bases, attrs):
 		if not [b for b in bases if isinstance(b, UpdateTogetherMeta)]:
 			return super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
@@ -199,7 +198,7 @@ class UpdateTogetherMeta(type):
 			
 			else:
 				for base in bases:
-					if issubclass(base, UpdateTogether) and base is not UpdateTogether:
+					if issubclass(base, UpdateTogetherModel) and base is not UpdateTogetherModel:
 						meta = getattr(base, '_meta')
 						
 						break
@@ -225,7 +224,7 @@ class UpdateTogetherMeta(type):
 			return new_class
 
 
-class UpdateTogether(BaseChangeTracker):
+class UpdateTogetherModel(BaseChangeTracker, models.Model):
 	__metaclass__ = UpdateTogetherMeta
 	
 	def save(self, *args, **kwargs):
@@ -237,4 +236,7 @@ class UpdateTogether(BaseChangeTracker):
 			
 			kwargs['update_fields'] = list(update_fields)
 		
-		super(UpdateTogether, self).save(*args, **kwargs)
+		super(UpdateTogetherModel, self).save(*args, **kwargs)
+	
+	class Meta:
+		abstract = True

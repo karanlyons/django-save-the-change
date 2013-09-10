@@ -5,10 +5,11 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 import os
 
 from django.db import models
-from save_the_change.mixins import SaveTheChange, TrackChanges, UpdateTogether
+
+from save_the_change.mixins import SaveTheChange, TrackChanges, UpdateTogetherModel
 
 
-class EnlightenedModel(SaveTheChange, UpdateTogether, TrackChanges, models.Model):
+class EnlightenedModel(SaveTheChange, TrackChanges, UpdateTogetherModel):
 	big_integer = models.BigIntegerField()
 	boolean = models.BooleanField()
 	char = models.CharField(max_length=32)
@@ -32,3 +33,8 @@ class EnlightenedModel(SaveTheChange, UpdateTogether, TrackChanges, models.Model
 	text = models.TextField()
 	time = models.TimeField()
 	URL = models.URLField()
+	
+	class Meta:
+		update_together = (
+			('big_integer', 'small_integer'),
+		)
