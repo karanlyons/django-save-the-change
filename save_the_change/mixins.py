@@ -51,7 +51,7 @@ class BaseChangeTracker(object):
 		
 		"""
 		
-		if hasattr(self, '_changed_fields'):
+		if hasattr(self, '_changed_fields') and self.pk is not None:
 			try:
 				name_map = self._meta._name_map
 			
