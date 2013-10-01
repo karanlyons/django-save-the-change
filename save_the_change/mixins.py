@@ -4,7 +4,7 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 
 from copy import copy
 
-from django.db.models import ManyToManyField
+from django.db.models import ManyToManyField, ForeignKey
 from django.db.models.related import RelatedObject
 from django.utils.six import iteritems
 
@@ -59,7 +59,17 @@ class BaseChangeTracker(object):
 				name_map = self._meta.init_name_map()
 			
 			if name in name_map and name_map[name][0].__class__ not in (ManyToManyField, RelatedObject):
-				old = getattr(self, name, DoesNotExist)
+				field = name_map[name][0]
+				if isinstance(field, ForeignKey) and field.null == False:
+					# Required ForeignKey fields raise a DoesNotExist error if
+					# there is an attempt to get the value and it has not been
+					# assigned yet. Handle this gracefully.
+					try:
+						old = getattr(self, name, DoesNotExist)
+					except field.rel.to.DoesNotExist:
+						old = None
+				else:
+					old = getattr(self, name, DoesNotExist)
 				super(BaseChangeTracker, self).__setattr__(name, value) # A parent's __setattr__ may change value.
 				new = getattr(self, name, DoesNotExist)
 				
