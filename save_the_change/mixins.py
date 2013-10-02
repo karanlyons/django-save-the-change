@@ -7,6 +7,8 @@ from copy import copy
 
 from django.db import models
 from django.utils import six
+from django.db.models import ManyToManyField, ForeignKey
+from django.db.models.related import RelatedObject
 
 
 __all__ = ('SaveTheChange', 'TrackChanges')
@@ -58,9 +60,24 @@ class BaseChangeTracker(object):
 			except AttributeError:
 				name_map = self._meta.init_name_map()
 			
-			if name in name_map and name_map[name][0].__class__ not in (models.ManyToManyField, models.related.RelatedObject):
-				old = getattr(self, name, DoesNotExist)
-				super(BaseChangeTracker, self).__setattr__(name, value) # A parent's __setattr__ may change value.
+			if name in name_map and name_map[name][0].__class__ not in (ManyToManyField, RelatedObject):
+				field = name_map[name][0]
+				
+				if isinstance(field, ForeignKey) and field.null is False:
+					# Required ForeignKey fields raise a DoesNotExist error if
+					# there is an attempt to get the value and it has not been
+					# assigned yet. Handle this gracefully.
+					try:
+						old = getattr(self, name, DoesNotExist)
+					
+					except field.rel.to.DoesNotExist:
+						old = None
+				
+				else:
+					old = getattr(self, name, DoesNotExist)
+				
+				# A parent's __setattr__ may change value.
+				super(BaseChangeTracker, self).__setattr__(name, value)
 				new = getattr(self, name, DoesNotExist)
 				
 				try:
@@ -74,7 +91,9 @@ class BaseChangeTracker(object):
 					
 					if name in changed_fields:
 						if changed_fields[name] == new:
-							# We've changed this field back to its original value from the database. No need to push it back up.
+							# We've changed this field back to its original
+							# value from the database. No need to push it
+							# back up.
 							changed_fields.pop(name)
 					
 					else:
