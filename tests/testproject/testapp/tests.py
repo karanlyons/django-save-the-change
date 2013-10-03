@@ -92,7 +92,7 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.old_values['id'] = m.id
 		self.new_values['id'] = m.id
-
+		
 		return m
 	
 	def create_changed(self):
@@ -237,6 +237,18 @@ class EnlightenedModelTestCase(TestCase):
 		new_values = self.new_values
 		m.text = 'newer'
 		new_values['text'] = 'newer'
+		
+		self.assertEquals(m.new_values, new_values)
+	
+	def test_updated_together_values(self):
+		m = self.create_saved()
+		EnlightenedModel.objects.all().update(big_integer=0)
+		
+		new_values = self.new_values
+		new_values['small_integer'] = 0
+		
+		m.small_integer = new_values['small_integer']
+		m.save()
 		
 		self.assertEquals(m.new_values, new_values)
 	

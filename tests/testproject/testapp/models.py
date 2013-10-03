@@ -5,7 +5,8 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 import os
 
 from django.db import models
-from save_the_change.mixins import SaveTheChange, TrackChanges
+
+from save_the_change.mixins import SaveTheChange, TrackChanges, UpdateTogetherModel
 
 
 class Enlightenment(models.Model):
@@ -16,7 +17,7 @@ class Enlightenment(models.Model):
 	aspect = models.CharField(max_length=32)
 
 
-class EnlightenedModel(SaveTheChange, TrackChanges, models.Model):
+class EnlightenedModel(SaveTheChange, TrackChanges, UpdateTogetherModel):
 	"""
 	A model to test (almost) everything else.
 	
@@ -48,3 +49,8 @@ class EnlightenedModel(SaveTheChange, TrackChanges, models.Model):
 	text = models.TextField()
 	time = models.TimeField()
 	URL = models.URLField()
+	
+	class Meta:
+		update_together = (
+			('big_integer', 'small_integer'),
+		)
