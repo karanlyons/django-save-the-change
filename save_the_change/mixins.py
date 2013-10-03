@@ -205,6 +205,17 @@ class TrackChanges(BaseChangeTracker):
 
 
 class UpdateTogetherMeta(models.base.ModelBase):
+	"""
+	A metaclass that hides our added `update_together` attribute from the
+	instance's :class:`~django.db.models.Model.Meta`, since otherwise Django's
+	fascistic Meta options sanitizer will throw an exception.
+	
+	(If you have another mixin that adds to your model's
+	:class:`~django.db.models.Model.Meta`, create a `metaclass` that inherits
+	from both this and the other mixin's `metaclass`.)
+	
+	"""
+	
 	def __new__(cls, name, bases, attrs):
 		if not [b for b in bases if isinstance(b, UpdateTogetherMeta)]:
 			return super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
@@ -212,7 +223,8 @@ class UpdateTogetherMeta(models.base.ModelBase):
 		else:
 			update_together = ()
 			
-			if 'Meta' in attrs and attrs['Meta'].__module__ != 'django.db.models.query_utils': # Deferred fields won't have our model's Meta.
+			# Deferred fields won't have our model's Meta.
+			if 'Meta' in attrs and attrs['Meta'].__module__ != 'django.db.models.query_utils':
 				meta = attrs.get('Meta')
 			
 			else:
@@ -244,6 +256,15 @@ class UpdateTogetherMeta(models.base.ModelBase):
 
 
 class UpdateTogetherModel(BaseChangeTracker, models.Model, six.with_metaclass(UpdateTogetherMeta)):
+	"""
+	A replacement for :class:`~django.db.models.Model` which allows you to
+	specify the `Meta` attribute `update_fields`: a
+	:py:obj:`list`/:py:obj:`tuple` of :py:obj:`list`\s/:py:obj:`tuple`\s
+	defining fields that should always be updated together if any of
+	them change.
+	
+	"""
+	
 	def save(self, *args, **kwargs):
 		if 'update_fields' in kwargs:
 			update_fields = set()

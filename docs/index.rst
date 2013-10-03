@@ -105,13 +105,22 @@ Save The Change also comes with a second mixin,
 new properties and methods for tracking and manually reverting changes to your
 model before you save it.
 
+You can also use :class:`~save_the_change.mixins.UpdateTogetherModel` in place of
+:class:`~django.db.models.Model` to add the new field `update_together` to your
+model's `Meta`, which allows you to specify that certain fields are dependent on
+the values of other fields in your model.
+
 
 Developer Interface
 ===================
 
 .. automodule:: save_the_change.mixins
-	:members: SaveTheChange, TrackChanges, DoesNotExist,
+	:members: SaveTheChange, TrackChanges
 	:undoc-members:
+
+.. autoclass:: save_the_change.mixins.UpdateTogetherModel
+
+.. autoclass:: save_the_change.mixins.DoesNotExist
 
 .. autoclass:: save_the_change.mixins.BaseChangeTracker
 	:members: __setattr__, save
