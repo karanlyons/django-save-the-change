@@ -206,13 +206,13 @@ class TrackChanges(BaseChangeTracker):
 
 class UpdateTogetherMeta(models.base.ModelBase):
 	"""
-	A metaclass that hides our added `update_together` attribute from the
-	instance's :class:`~django.db.models.Model.Meta`, since otherwise Django's
-	fascistic Meta options sanitizer will throw an exception.
+	A metaclass that hides our added ``update_together`` attribute from the
+	instance's ``Meta``, since otherwise Django's fascistic Meta options
+	sanitizer will throw an exception.
 	
-	(If you have another mixin that adds to your model's
-	:class:`~django.db.models.Model.Meta`, create a `metaclass` that inherits
-	from both this and the other mixin's `metaclass`.)
+	(If you have another mixin that adds to your model's ``Meta``, create a
+	``metaclass`` that inherits from both this and the other
+	mixin's ``metaclass``.)
 	
 	"""
 	
@@ -258,7 +258,7 @@ class UpdateTogetherMeta(models.base.ModelBase):
 class UpdateTogetherModel(BaseChangeTracker, models.Model, six.with_metaclass(UpdateTogetherMeta)):
 	"""
 	A replacement for :class:`~django.db.models.Model` which allows you to
-	specify the `Meta` attribute `update_fields`: a
+	specify the ``Meta`` attribute ``update_together``: a
 	:py:obj:`list`/:py:obj:`tuple` of :py:obj:`list`\s/:py:obj:`tuple`\s
 	defining fields that should always be updated together if any of
 	them change.

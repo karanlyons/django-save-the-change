@@ -106,8 +106,8 @@ new properties and methods for tracking and manually reverting changes to your
 model before you save it.
 
 You can also use :class:`~save_the_change.mixins.UpdateTogetherModel` in place of
-:class:`~django.db.models.Model` to add the new field `update_together` to your
-model's `Meta`, which allows you to specify that certain fields are dependent on
+:class:`~django.db.models.Model` to add the new field ``update_together`` to your
+model's ``Meta``, which allows you to specify that certain fields are dependent on
 the values of other fields in your model.
 
 
@@ -124,6 +124,8 @@ Developer Interface
 
 .. autoclass:: save_the_change.mixins.BaseChangeTracker
 	:members: __setattr__, save
+
+.. autoclass:: save_the_change.mixins.UpdateTogetherMeta
 
 
 .. include:: ../HISTORY.rst
