@@ -245,7 +245,7 @@ class UpdateTogetherMeta(models.base.ModelBase):
 				for dependent in codependents:
 					mapping[dependent].update(codependents)
 			
-			update_together = mapping
+			update_together = dict(mapping)
 			
 			if meta:
 				setattr(meta, 'update_together', update_together)
@@ -270,7 +270,7 @@ class UpdateTogetherModel(BaseChangeTracker, models.Model, six.with_metaclass(Up
 			update_fields = set()
 			
 			for field in kwargs['update_fields']:
-				update_fields.update(self._meta.update_together[field])
+				update_fields.update(self._meta.update_together.get(field, {}))
 			
 			kwargs['update_fields'] = list(update_fields)
 		
