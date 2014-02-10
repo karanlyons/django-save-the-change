@@ -6,6 +6,7 @@ from copy import copy
 
 from django.db.models import ManyToManyField
 from django.db.models.related import RelatedObject
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.six import iteritems
 
 
@@ -33,7 +34,7 @@ class BaseChangeTracker(object):
 	removed from :attr:`._changed_fields`. Thus, overhead is kept at a minimum.
 	
 	A caveat: This can't do anything to help you with
-	:class:`~django.db.models.ManyToManyField`\s nor reverse relationships, which
+	:class:`~django.db.models.ManyToManyField` nor reverse relationships, which
 	is par for the course: they aren't handled by
 	:meth:`~django.db.models.Model.save`, but are pushed to the database
 	immediately when changed.
@@ -59,8 +60,13 @@ class BaseChangeTracker(object):
 				name_map = self._meta.init_name_map()
 			
 			if name in name_map and name_map[name][0].__class__ not in (ManyToManyField, RelatedObject):
-				old = getattr(self, name, DoesNotExist)
-				super(BaseChangeTracker, self).__setattr__(name, value) # A parent's __setattr__ may change value.
+				# Handle null foreign key values
+				try:
+					old = getattr(self, name, DoesNotExist)
+				except ObjectDoesNotExist:
+					old = None
+			
+				super(BaseChangeTracker, self).__setattr__(name, value)
 				new = getattr(self, name, DoesNotExist)
 				
 				try:
