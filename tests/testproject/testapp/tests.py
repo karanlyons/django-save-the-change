@@ -249,8 +249,16 @@ class EnlightenedModelTestCase(TestCase):
 		
 		m.small_integer = new_values['small_integer']
 		m.save()
+		m = EnlightenedModel.objects.all()[0]
 		
 		self.assertEquals(m.new_values, new_values)
+	
+	def test_updated_together_with_deferred_fields(self):
+		m = self.create_saved()
+		
+		m = EnlightenedModel.objects.only('big_integer').get(pk=m.pk)
+		
+		self.assertEquals(m.new_values, self.new_values)
 	
 	"""
 	Regression Tests
@@ -278,3 +286,6 @@ class EnlightenedModelTestCase(TestCase):
 		for file_name in os.listdir(self.uploads):
 			if file_name.endswith('.png'):
 				os.remove(os.path.join(os.path.join(self.uploads, file_name)))
+		
+		self.old_values.pop('id', None)
+		self.new_values.pop('id', None)

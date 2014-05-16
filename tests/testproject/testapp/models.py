@@ -5,6 +5,7 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 import os
 
 from django.db import models
+from django.utils import six
 
 from save_the_change.mixins import SaveTheChange, TrackChanges, UpdateTogetherModel
 
@@ -14,6 +15,7 @@ class Enlightenment(models.Model):
 	A model to test ForeignKeys.
 	
 	"""
+	
 	aspect = models.CharField(max_length=32)
 
 

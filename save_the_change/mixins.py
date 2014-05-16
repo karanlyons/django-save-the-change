@@ -221,6 +221,7 @@ class UpdateTogetherMeta(models.base.ModelBase):
 			return super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
 		
 		else:
+			meta = None
 			update_together = ()
 			
 			# Deferred fields won't have our model's Meta.
@@ -229,9 +230,9 @@ class UpdateTogetherMeta(models.base.ModelBase):
 			
 			else:
 				for base in bases:
-					if issubclass(base, UpdateTogetherModel) and base is not UpdateTogetherModel:
-						meta = getattr(base, '_meta')
-						
+					meta = getattr(base, '_meta', None)
+					
+					if meta:
 						break
 			
 			if meta and hasattr(meta, 'update_together'):
@@ -267,10 +268,10 @@ class UpdateTogetherModel(BaseChangeTracker, models.Model, six.with_metaclass(Up
 	
 	def save(self, *args, **kwargs):
 		if 'update_fields' in kwargs:
-			update_fields = set()
+			update_fields = set(kwargs['update_fields'])
 			
 			for field in kwargs['update_fields']:
-				update_fields.update(self._meta.update_together.get(field, {}))
+				update_fields.update(self._meta.update_together.get(field, []))
 			
 			kwargs['update_fields'] = list(update_fields)
 		
