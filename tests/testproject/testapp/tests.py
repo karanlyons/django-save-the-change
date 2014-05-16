@@ -13,7 +13,7 @@ from django.db import models
 from django.db.models.fields.files import FieldFile, ImageFieldFile
 from django.test import TestCase
 
-from testproject.testapp.models import EnlightenedModel
+from testproject.testapp.models import Enlightenment, EnlightenedModel
 
 
 class EnlightenedModelTestCase(TestCase):
@@ -27,6 +27,9 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.uploads = os.path.abspath(os.path.join(self.penny_front, '..', 'testproject', 'uploads'))
 		
+		self.knowledge = Enlightenment.objects.create(aspect='knowledge')
+		self.wisdom = Enlightenment.objects.create(aspect='wisdom')
+		
 		self.old_values = {
 			'big_integer': 3735928559,
 			'boolean': True,
@@ -36,6 +39,7 @@ class EnlightenedModelTestCase(TestCase):
 			'date_time': datetime.datetime(1999, 12, 31, 23, 59, 59),
 			'decimal': Decimal('0.02'),
 			'email': 'gautama@kapilavastu.org',
+			'enlightenment': self.knowledge,
 #			'file': File(open(self.penny_front), 'penny_front_file.png'),
 			'file_path': 'uploads/penny_front_file.png',
 			'float': 1.61803,
@@ -62,6 +66,7 @@ class EnlightenedModelTestCase(TestCase):
 			'date_time': pytz.utc.localize(datetime.datetime(2000, 1, 1, 0, 0, 0)),
 			'decimal': Decimal('3.50'),
 			'email': 'maitreya@unknown.org',
+			'enlightenment': self.wisdom,
 #			'file': File(open(self.penny_back), 'penny_back_file.png'),
 			'file_path': 'uploads/penny_back_file.png',
 			'float': 3.14159,
@@ -87,7 +92,7 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.old_values['id'] = m.id
 		self.new_values['id'] = m.id
-
+		
 		return m
 	
 	def create_changed(self):
@@ -231,11 +236,56 @@ class EnlightenedModelTestCase(TestCase):
 		m = self.create_changed()
 		new_values = self.new_values
 		m.text = 'newer'
-		self.new_values['text'] = 'newer'
+		new_values['text'] = 'newer'
+		
+		self.assertEquals(m.new_values, new_values)
+	
+	def test_updated_together_values(self):
+		m = self.create_saved()
+		EnlightenedModel.objects.all().update(big_integer=0)
+		
+		new_values = self.new_values
+		new_values['small_integer'] = 0
+		
+		m.small_integer = new_values['small_integer']
+		m.save()
+		m = EnlightenedModel.objects.all()[0]
+		
+		self.assertEquals(m.new_values, new_values)
+	
+	def test_updated_together_with_deferred_fields(self):
+		m = self.create_saved()
+		
+		m = EnlightenedModel.objects.only('big_integer').get(pk=m.pk)
 		
 		self.assertEquals(m.new_values, self.new_values)
+	
+	"""
+	Regression Tests
+	
+	"""
+	
+	def test_assign_fkey_after_init_before_save(self):
+		"""
+		If a required ForeignKey is assigned after the model is initialized
+		but before it is saved, a field.rel.to.DoesNotExist exception should
+		not be raised.
+		
+		"""
+		
+		del(self.old_values['enlightenment'])
+		m = EnlightenedModel(**self.old_values)
+		
+		try:
+			m.enlightenment = self.knowledge
+		
+		except Enlightenment.DoesNotExist:
+			self.fail('Assigning a foreign key resulted in a DoesNotExist.')
 	
 	def tearDown(self):
 		for file_name in os.listdir(self.uploads):
 			if file_name.endswith('.png'):
 				os.remove(os.path.join(os.path.join(self.uploads, file_name)))
+		
+		self.old_values.pop('id', None)
+		self.new_values.pop('id', None)

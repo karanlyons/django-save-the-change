@@ -3,7 +3,7 @@
 from __future__ import division, absolute_import, print_function, unicode_literals
 
 
-VERSION = (1, 0, 0)
+VERSION = (1, 1, 0)
 
 __title__ = 'Save The Change'
 __version__ = '.'.join((str(i) for i in VERSION)) # str for compatibility with setup.py under Python 3.

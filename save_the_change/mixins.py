@@ -2,11 +2,13 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
+from collections import defaultdict
 from copy import copy
 
-from django.db.models import ManyToManyField
+from django.db import models
+from django.utils import six
+from django.db.models import ManyToManyField, ForeignKey
 from django.db.models.related import RelatedObject
-from django.utils.six import iteritems
 
 
 __all__ = ('SaveTheChange', 'TrackChanges')
@@ -59,8 +61,23 @@ class BaseChangeTracker(object):
 				name_map = self._meta.init_name_map()
 			
 			if name in name_map and name_map[name][0].__class__ not in (ManyToManyField, RelatedObject):
-				old = getattr(self, name, DoesNotExist)
-				super(BaseChangeTracker, self).__setattr__(name, value) # A parent's __setattr__ may change value.
+				field = name_map[name][0]
+				
+				if isinstance(field, ForeignKey) and field.null is False:
+					# Required ForeignKey fields raise a DoesNotExist error if
+					# there is an attempt to get the value and it has not been
+					# assigned yet. Handle this gracefully.
+					try:
+						old = getattr(self, name, DoesNotExist)
+					
+					except field.rel.to.DoesNotExist:
+						old = None
+				
+				else:
+					old = getattr(self, name, DoesNotExist)
+				
+				# A parent's __setattr__ may change value.
+				super(BaseChangeTracker, self).__setattr__(name, value)
 				new = getattr(self, name, DoesNotExist)
 				
 				try:
@@ -74,7 +91,9 @@ class BaseChangeTracker(object):
 					
 					if name in changed_fields:
 						if changed_fields[name] == new:
-							# We've changed this field back to its original value from the database. No need to push it back up.
+							# We've changed this field back to its original
+							# value from the database. No need to push it
+							# back up.
 							changed_fields.pop(name)
 					
 					else:
@@ -115,7 +134,7 @@ class SaveTheChange(BaseChangeTracker):
 		"""
 		
 		if self.pk and hasattr(self, '_changed_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
-			kwargs['update_fields'] = [key for key, value in iteritems(self._changed_fields) if hasattr(self, key)]
+			kwargs['update_fields'] = [key for key, value in six.iteritems(self._changed_fields) if hasattr(self, key)]
 		
 		super(SaveTheChange, self).save(*args, **kwargs)
 
@@ -183,3 +202,80 @@ class TrackChanges(BaseChangeTracker):
 		for field in fields:
 			if field in self._changed_fields:
 				setattr(self, field, self._changed_fields[field])
+
+
+class UpdateTogetherMeta(models.base.ModelBase):
+	"""
+	A metaclass that hides our added ``update_together`` attribute from the
+	instance's ``Meta``, since otherwise Django's fascistic Meta options
+	sanitizer will throw an exception.
+	
+	(If you have another mixin that adds to your model's ``Meta``, create a
+	``metaclass`` that inherits from both this and the other
+	mixin's ``metaclass``.)
+	
+	"""
+	
+	def __new__(cls, name, bases, attrs):
+		if not [b for b in bases if isinstance(b, UpdateTogetherMeta)]:
+			return super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
+		
+		else:
+			meta = None
+			update_together = ()
+			
+			# Deferred fields won't have our model's Meta.
+			if 'Meta' in attrs and attrs['Meta'].__module__ != 'django.db.models.query_utils':
+				meta = attrs.get('Meta')
+			
+			else:
+				for base in bases:
+					meta = getattr(base, '_meta', None)
+					
+					if meta:
+						break
+			
+			if meta and hasattr(meta, 'update_together'):
+				update_together = getattr(meta, 'update_together')
+				delattr(meta, 'update_together')
+			
+			new_class = super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
+			
+			mapping = defaultdict(set)
+			for codependents in update_together:
+				for dependent in codependents:
+					mapping[dependent].update(codependents)
+			
+			update_together = dict(mapping)
+			
+			if meta:
+				setattr(meta, 'update_together', update_together)
+			
+			setattr(new_class._meta, 'update_together', update_together)
+			
+			return new_class
+
+
+class UpdateTogetherModel(BaseChangeTracker, models.Model, six.with_metaclass(UpdateTogetherMeta)):
+	"""
+	A replacement for :class:`~django.db.models.Model` which allows you to
+	specify the ``Meta`` attribute ``update_together``: a
+	:py:obj:`list`/:py:obj:`tuple` of :py:obj:`list`\s/:py:obj:`tuple`\s
+	defining fields that should always be updated together if any of
+	them change.
+	
+	"""
+	
+	def save(self, *args, **kwargs):
+		if 'update_fields' in kwargs:
+			update_fields = set(kwargs['update_fields'])
+			
+			for field in kwargs['update_fields']:
+				update_fields.update(self._meta.update_together.get(field, []))
+			
+			kwargs['update_fields'] = list(update_fields)
+		
+		super(UpdateTogetherModel, self).save(*args, **kwargs)
+	
+	class Meta:
+		abstract = True
