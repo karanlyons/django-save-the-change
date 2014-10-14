@@ -14,6 +14,9 @@ from django.conf import settings
 
 
 def run_tests():
+        import django
+        if django.VERSION[:2] >= (1, 7):
+                django.setup()
 	sys.exit(bool(get_runner(settings)(verbosity=1, interactive=True).run_tests(['testapp'])))
 
 
