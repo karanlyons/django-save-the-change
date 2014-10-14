@@ -5,23 +5,29 @@ python:
   - "2.7"
   - "3.2"
   - "3.3"
+  - "3.4"
+  - "pypy"
+  - "pypy3"
 
 env:
-  - DJANGO=1.5
-  - DJANGO=1.5.1
-  - DJANGO=1.5.2
-  - DJANGO=1.5.3
-  - DJANGO=1.5.4
+  - DJANGO='DJANGO>=1.5.0,<1.6.0'
+  - DJANGO='DJANGO>=1.6.0,<1.7.0'
+  - DJANGO='DJANGO>=1.7.0,<1.8.0'
 
 install:
-  - pip install -q coveralls --use-mirrors
-  - pip install -q pytz==2013d --use-mirrors
-  - pip install -q pillow --use-mirrors
-  - pip install -q django==$DJANGO --use-mirrors
-  - pip install -q -e . --use-mirrors
+  - travis_retry pip install -q coveralls
+  - travis_retry pip install -q pytz==2013d
+  - travis_retry pip install -q pillow
+  - travis_retry pip install -q $DJANGO
+  - travis_retry pip install -q -e .
 
 script:
   - coverage run --source=save_the_change setup.py test
 
 after_success:
   - coveralls
+
+matrix:
+  exclude:
+    - python: "2.6"
+      env: DJANGO='DJANGO>=1.7.0,<1.8.0'
