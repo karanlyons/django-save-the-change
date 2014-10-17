@@ -14,8 +14,12 @@ from django.conf import settings
 
 
 def run_tests():
-	sys.exit(bool(get_runner(settings)(verbosity=1, interactive=True).run_tests(['testapp'])))
+    import django
+
+    if django.VERSION[:2] >= (1, 7):
+        django.setup()
+    sys.exit(bool(get_runner(settings)(verbosity=1, interactive=True).run_tests(['testapp'])))
 
 
 if __name__ == '__main__':
-	run_tests()
+    run_tests()
