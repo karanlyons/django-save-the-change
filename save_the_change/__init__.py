@@ -6,7 +6,7 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 VERSION = (1, 1, 0)
 
 __title__ = 'Save The Change'
-__version__ = '.'.join((str(i) for i in VERSION)) # str for compatibility with setup.py under Python 3.
+__version__ = '.'.join((str(i) for i in VERSION))  # str for compatibility with setup.py under Python 3.
 __author__ = 'Karan Lyons'
 __contact__ = 'karan@karanlyons.com'
 __homepage__ = 'https://github.com/karanlyons/django-save-the-change'
