@@ -28,4 +28,4 @@ INSTALLED_APPS = (
 	'testproject.testapp',
 )
 
-TEST_RUNNER = 'django.test.simple.DjangoTestSuiteRunner'
+TEST_RUNNER = 'django.test.runner.DiscoverRunner'
