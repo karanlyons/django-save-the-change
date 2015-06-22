@@ -7,7 +7,7 @@ from copy import copy
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
-from django.db.models import ManyToManyField, ManyToOneRel, ForeignKey
+from django.db.models import ManyToManyField, ManyToOneRel
 from django.utils import six
 
 
@@ -61,18 +61,11 @@ class BaseChangeTracker(object):
 				field = None
 			
 			if field and not (field.auto_created or field.hidden) and field.__class__ not in (ManyToManyField, ManyToOneRel):
-				if isinstance(field, ForeignKey) and field.null is False:
-					# Required ForeignKey fields raise a DoesNotExist error if
-					# there is an attempt to get the value and it has not been
-					# assigned yet. Handle this gracefully.
-					try:
-						old = getattr(self, field.name, DoesNotExist)
-					
-					except field.rel.to.DoesNotExist:
-						old = None
-				
-				else:
+				try:
 					old = getattr(self, field.name, DoesNotExist)
+				
+				except field.rel.to.DoesNotExist:
+					old = DoesNotExist
 				
 				# A parent's __setattr__ may change value.
 				super(BaseChangeTracker, self).__setattr__(name, value)
