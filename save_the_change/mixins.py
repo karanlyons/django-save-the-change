@@ -2,9 +2,13 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
-from collections import defaultdict
-from copy import copy
+from copy import copy, deepcopy
+from datetime import date, time, datetime, timedelta, tzinfo
+from decimal import Decimal
+from types import NoneType
+from uuid import UUID
 
+from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models import ManyToManyField, ManyToOneRel
@@ -12,6 +16,20 @@ from django.utils import six
 
 
 __all__ = ('SaveTheChange', 'TrackChanges')
+
+
+#: A :py:class:`set` listing known immutable types.
+IMMUTABLE_TYPES = set(getattr(settings, 'STC_IMMUTABLE_TYPES', {
+	NoneType, bool, int, float, long, complex, Decimal,
+	str, unicode, basestring,
+	tuple, frozenset,
+	date, time, datetime, timedelta, tzinfo,
+	UUID
+}))
+
+INFINITELY_ITERABLE_IMMUTABLE_TYPES = set(getattr(settings, 'STC_INFINITELY_ITERABLE_IMMUTABLE_TYPES', {
+	str, unicode, basestring
+}))
 
 
 class DoesNotExist:
@@ -23,6 +41,22 @@ class DoesNotExist:
 	"""
 	
 	pass
+
+
+def is_mutable(obj):
+	if type(obj) not in IMMUTABLE_TYPES:
+		return True
+	
+	elif type(obj) not in INFINITELY_ITERABLE_IMMUTABLE_TYPES:
+		try:
+			for sub_obj in iter(obj):
+				if is_mutable(sub_obj):
+					return True
+		
+		except TypeError:
+			pass
+	
+	return False
 
 
 class BaseChangeTracker(object):
@@ -45,7 +79,29 @@ class BaseChangeTracker(object):
 	def __init__(self, *args, **kwargs):
 		super(BaseChangeTracker, self).__init__(*args, **kwargs)
 		
+		self._mutable_fields = {} #: A :py:class:`dict` storing likely mutable fields.
 		self._changed_fields = {} #: A :py:class:`dict` storing changed fields.
+	
+	def __getattribute__(self, name):
+		"""
+		Checks the returned value from fields to see if it's known to be
+		immutable. If it isn't, adds it to :attr:`._mutable_fields` so we know
+		to push it back to the db. This allows us to cover the case wherein a
+		mutable value is accessed and then some part of that value is altered.
+		
+		"""
+		value = super(BaseChangeTracker, self).__getattribute__(name)
+		
+		if (
+			'_mutable_fields' in super(BaseChangeTracker, self).__getattribute__('__dict__')
+			and name in (field.attname for field in super(BaseChangeTracker, self).__getattribute__('_meta').concrete_fields)
+		):
+			# We can't do an isinstance() check here since a subclass could
+			# violate the immutability promise.
+			if is_mutable(value):
+				super(BaseChangeTracker, self).__getattribute__('_mutable_fields')[name] = deepcopy(value)
+		
+		return value
 	
 	def __setattr__(self, name, value):
 		"""
@@ -104,6 +160,7 @@ class BaseChangeTracker(object):
 		
 		super(BaseChangeTracker, self).save(*args, **kwargs)
 		
+		self._mutable_fields = {}
 		self._changed_fields = {}
 
 
@@ -124,8 +181,11 @@ class SaveTheChange(BaseChangeTracker):
 		
 		"""
 		
-		if self.pk and hasattr(self, '_changed_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
-			kwargs['update_fields'] = [key for key, value in six.iteritems(self._changed_fields) if hasattr(self, key)]
+		if self.pk and hasattr(self, '_changed_fields') and hasattr(self, '_mutable_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
+			kwargs['update_fields'] = (
+				[key for key, value in six.iteritems(self._changed_fields) if hasattr(self, key)] +
+				[key for key, value in six.iteritems(self._mutable_fields) if hasattr(self, key) and getattr(self, key) != value]
+			)
 		
 		super(SaveTheChange, self).save(*args, **kwargs)
 
