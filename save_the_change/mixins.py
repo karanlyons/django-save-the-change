@@ -109,7 +109,7 @@ class BaseChangeTracker(object):
 		
 		"""
 		
-		if hasattr(self, '_changed_fields'):
+		if hasattr(self, '_changed_fields') and name in (field.attname for field in super(BaseChangeTracker, self).__getattribute__('_meta').concrete_fields):
 			try:
 				field = self._meta.get_field(name)
 			
@@ -118,14 +118,14 @@ class BaseChangeTracker(object):
 			
 			if field and not (field.auto_created or field.hidden) and field.__class__ not in (ManyToManyField, ManyToOneRel):
 				try:
-					old = getattr(self, field.name, DoesNotExist)
+					old = self.__dict__.get(field.name, DoesNotExist)
 				
 				except field.rel.to.DoesNotExist:
 					old = DoesNotExist
 				
 				# A parent's __setattr__ may change value.
 				super(BaseChangeTracker, self).__setattr__(name, value)
-				new = getattr(self, field.name, DoesNotExist)
+				new = self.__dict__.get(field.name, DoesNotExist)
 				
 				try:
 					changed = (old != new)
@@ -134,17 +134,15 @@ class BaseChangeTracker(object):
 					changed = True
 				
 				if changed:
-					changed_fields = self._changed_fields
-					
-					if field.name in changed_fields:
-						if changed_fields[field.name] == new:
+					if field.name in self._changed_fields:
+						if self._changed_fields[field.name] == new:
 							# We've changed this field back to its original
 							# value from the database. No need to push it
 							# back up.
-							changed_fields.pop(field.name)
+							self._changed_fields.pop(field.name)
 					
 					else:
-						changed_fields[field.name] = copy(old)
+						self._changed_fields[field.name] = copy(old)
 			
 			else:
 				super(BaseChangeTracker, self).__setattr__(name, value)
