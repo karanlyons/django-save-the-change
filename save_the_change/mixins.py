@@ -247,11 +247,13 @@ class TrackChanges(BaseChangeTracker):
 				setattr(self, field, self._changed_fields[field])
 
 
-class UpdateTogetherMeta(models.base.ModelBase):
+class HideMetaOpts(models.base.ModelBase):
 	"""
-	A metaclass that hides our added ``update_together`` attribute from the
-	instance's ``Meta``, since otherwise Django's fascistic Meta options
-	sanitizer will throw an exception.
+	A metaclass that hides added attributes from a class' ``Meta``, since
+	otherwise Django's fascistic Meta options sanitizer will throw an
+	exception. Default values can be set with default_meta_opts. By default
+	only opts defined in default_meta_opts will be hidden from Django; if you
+	want to hide everything unknown, set hide_unknown_opts to ``True``.
 	
 	(If you have another mixin that adds to your model's ``Meta``, create a
 	``metaclass`` that inherits from both this and the other
@@ -259,49 +261,52 @@ class UpdateTogetherMeta(models.base.ModelBase):
 	
 	"""
 	
+	default_meta_opts = {
+		'update_together': (),
+	}
+	
+	hide_unknown_opts = False
+	
 	def __new__(cls, name, bases, attrs):
-		return super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
-		
-		if not [b for b in bases if isinstance(b, UpdateTogetherMeta)]:
-			return super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
+		if not [b for b in bases if isinstance(b, HideMetaOpts)]:
+			return super(HideMetaOpts, cls).__new__(cls, name, bases, attrs)
 		
 		else:
-			meta = None
-			update_together = ()
+			meta_opts = deepcopy(cls.default_meta_opts)
 			
 			# Deferred fields won't have our model's Meta.
 			if 'Meta' in attrs and attrs['Meta'].__module__ != 'django.db.models.query_utils':
 				meta = attrs.get('Meta')
 			
 			else:
+				# Meta is at a class level, and could be in any of the bases.
 				for base in bases:
 					meta = getattr(base, '_meta', None)
 					
 					if meta:
 						break
 			
-			if meta and hasattr(meta, 'update_together'):
-				update_together = getattr(meta, 'update_together')
-				delattr(meta, 'update_together')
+			# If there's no _meta then we're falling back to defaults.
+			if meta:
+				for opt, value in vars(meta).items():
+					if opt not in models.options.DEFAULT_NAMES and (cls.hide_unknown_opts or opt in meta_opts):
+						meta_opts[opt] = value
+						delattr(meta, opt)
 			
-			new_class = super(UpdateTogetherMeta, cls).__new__(cls, name, bases, attrs)
-			
-			mapping = defaultdict(set)
-			for codependents in update_together:
-				for dependent in codependents:
-					mapping[dependent].update(codependents)
-			
-			update_together = dict(mapping)
+			new_class = super(HideMetaOpts, cls).__new__(cls, name, bases, attrs)
 			
 			if meta:
-				setattr(meta, 'update_together', update_together)
+				for opt in meta_opts:
+					setattr(meta, opt, meta_opts[opt])
 			
-			setattr(new_class._meta, 'update_together', update_together)
+			# We theoretically don't have to set this twice, but just in case.
+			for opt in meta_opts:
+				setattr(new_class._meta, opt, meta_opts[opt])
 			
 			return new_class
 
 
-#class UpdateTogetherModel(BaseChangeTracker, models.Model, six.with_metaclass(UpdateTogetherMeta)):
+#class UpdateTogetherModel(BaseChangeTracker, models.Model, six.with_metaclass(HideMetaOpts)):
 #	"""
 #	A replacement for :class:`~django.db.models.Model` which allows you to
 #	specify the ``Meta`` attribute ``update_together``: a
