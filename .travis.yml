@@ -1,23 +1,24 @@
 language: python
 
 python:
-  - "2.6"
   - "2.7"
   - "3.2"
   - "3.3"
+  - "3.4"
+  - "3.5"
 
 env:
-  - DJANGO=1.5
-  - DJANGO=1.5.1
-  - DJANGO=1.5.2
-  - DJANGO=1.5.3
-  - DJANGO=1.5.4
+  - DJANGO_VERSION=1.5
+  - DJANGO_VERSION=1.6
+  - DJANGO_VERSION=1.7
+  - DJANGO_VERSION=1.8
+  - DJANGO_VERSION=1.9
 
 install:
   - pip install -q coveralls --use-mirrors
-  - pip install -q pytz==2013d --use-mirrors
+  - pip install -q pytz==2015.7 --use-mirrors
   - pip install -q pillow --use-mirrors
-  - pip install -q django==$DJANGO --use-mirrors
+  - pip install -q django==$DJANGO_VERSION --use-mirrors
   - pip install -q -e . --use-mirrors
 
 script:
