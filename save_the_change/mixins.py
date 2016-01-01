@@ -89,6 +89,7 @@ class BaseChangeTracker(object):
 		value = super(BaseChangeTracker, self).__getattribute__(name)
 		
 		if (
+			not hasattr(value, '__call__') and
 			'_mutable_fields' in super(BaseChangeTracker, self).__getattribute__('__dict__')
 			and name in (field.attname for field in super(BaseChangeTracker, self).__getattribute__('_meta').concrete_fields)
 		):
@@ -105,23 +106,23 @@ class BaseChangeTracker(object):
 		
 		"""
 		
-		if hasattr(self, '_changed_fields') and name in (field.attname for field in super(BaseChangeTracker, self).__getattribute__('_meta').concrete_fields):
+		if hasattr(self, '_changed_fields') and name in (field.name for field in super(BaseChangeTracker, self).__getattribute__('_meta').fields):
 			try:
 				field = self._meta.get_field(name)
 			
 			except FieldDoesNotExist:
 				field = None
 			
-			if field and not (field.auto_created or field.hidden) and field.__class__ not in (ManyToManyField, ManyToOneRel):
+			if field and not field.hidden and field.__class__ not in (ManyToManyField, ManyToOneRel):
 				try:
-					old = self.__dict__.get(field.name, DoesNotExist)
+					old = getattr(self, field.name, DoesNotExist)
 				
 				except field.rel.to.DoesNotExist:
 					old = DoesNotExist
 				
 				# A parent's __setattr__ may change value.
 				super(BaseChangeTracker, self).__setattr__(name, value)
-				new = self.__dict__.get(field.name, DoesNotExist)
+				new = getattr(self, field.name, DoesNotExist)
 				
 				try:
 					changed = (old != new)
