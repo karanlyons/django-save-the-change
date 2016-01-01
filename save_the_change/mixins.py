@@ -86,6 +86,7 @@ class BaseChangeTracker(object):
 		mutable value is accessed and then some part of that value is altered.
 		
 		"""
+		
 		value = super(BaseChangeTracker, self).__getattribute__(name)
 		
 		if (
