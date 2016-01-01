@@ -2,6 +2,7 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
+from collections import Mapping
 from copy import copy, deepcopy
 from datetime import date, time, datetime, timedelta, tzinfo
 from decimal import Decimal
@@ -107,7 +108,7 @@ class BaseChangeTracker(object):
 		
 		"""
 		
-		if hasattr(self, '_changed_fields') and name in (field.name for field in super(BaseChangeTracker, self).__getattribute__('_meta').fields):
+		if hasattr(self, '_changed_fields') and name in super(BaseChangeTracker, self).__getattribute__('_meta')._forward_fields_map:
 			try:
 				field = self._meta.get_field(name)
 			
@@ -115,32 +116,50 @@ class BaseChangeTracker(object):
 				field = None
 			
 			if field and not field.hidden and field.__class__ not in (ManyToManyField, ManyToOneRel):
-				try:
-					old = getattr(self, field.name, DoesNotExist)
+				old = self.__dict__.get(field.attname, DoesNotExist)
 				
-				except field.rel.to.DoesNotExist:
-					old = DoesNotExist
+				if old is not DoesNotExist and field.is_relation:
+					try:
+						# If we've already got a hydrated object we can stash,
+						# awesome.
+						hydrated_old = getattr(self, getattr(self.__class__, field.name).cache_name)
+						
+						if hydrated_old.pk != old:
+							hydrated_old = DoesNotExist
+					
+					except AttributeError:
+						hydrated_old = DoesNotExist
+				
+				else:
+					hydrated_old = DoesNotExist
 				
 				# A parent's __setattr__ may change value.
 				super(BaseChangeTracker, self).__setattr__(name, value)
-				new = getattr(self, field.name, DoesNotExist)
+				
+				new = self.__dict__.get(field.attname, DoesNotExist)
 				
 				try:
 					changed = (old != new)
 				
-				except: # pragma: no cover (covers naive/aware datetime comparison failure; unreachable in py3)
+				except Exception: # pragma: no cover (covers naive/aware datetime comparison failure; unreachable in py3)
 					changed = True
 				
 				if changed:
-					if field.name in self._changed_fields:
-						if self._changed_fields[field.name] == new:
+					if field.attname in self._changed_fields:
+						if self._changed_fields[field.attname] == new:
 							# We've changed this field back to its original
 							# value from the database. No need to push it
 							# back up.
-							self._changed_fields.pop(field.name)
+							self._changed_fields.pop(field.attname, None)
+							
+							if field.attname != field.name:
+								self._changed_fields.pop(field.name, None)
 					
 					else:
-						self._changed_fields[field.name] = copy(old)
+						self._changed_fields[field.attname] = copy(old)
+						
+						if field.attname != field.name and hydrated_old is not DoesNotExist:
+							self._changed_fields[field.name] = copy(hydrated_old)
 			
 			else:
 				super(BaseChangeTracker, self).__setattr__(name, value)
@@ -179,11 +198,52 @@ class SaveTheChange(BaseChangeTracker):
 		
 		if self.pk and hasattr(self, '_changed_fields') and hasattr(self, '_mutable_fields') and 'update_fields' not in kwargs and not kwargs.get('force_insert', False):
 			kwargs['update_fields'] = (
-				[key for key, value in six.iteritems(self._changed_fields) if hasattr(self, key)] +
+				[key for key, value in six.iteritems(self._changed_fields)] +
 				[key for key, value in six.iteritems(self._mutable_fields) if hasattr(self, key) and getattr(self, key) != value]
 			)
 		
 		super(SaveTheChange, self).save(*args, **kwargs)
+
+
+class OldValues(Mapping):
+	def __init__(self, instance):
+		self.instance = instance
+	
+	def __getitem__(self, field_name):
+		field = self.instance._meta._forward_fields_map[field_name]
+		
+		try:
+			if field.attname not in self.instance._changed_fields:
+				return getattr(self.instance, field.name)
+			
+			elif field.name in self.instance._changed_fields:
+				return self.instance._changed_fields[field.name]
+			
+			elif field.is_relation and self.instance._changed_fields[field.attname] is not None:
+				try:
+					self.instance._changed_fields[field.name] = getattr(
+						self.instance.__class__,
+						field.name
+					).get_queryset().get(pk=self.instance._changed_fields[field.attname])
+				
+				except self.instance.DoesNotExist:
+					self.instance._changed_fields[field.name] = DoesNotExist
+			
+			else:
+				return self.instance._changed_fields[field.attname]
+		
+		except (AttributeError, KeyError):
+			raise KeyError(field_name)
+	
+	def __iter__(self):
+		for field in self.instance._meta.get_fields():
+			yield field.name
+	
+	def __len__(self):
+		return len(self.instance._meta.get_fields())
+	
+	def __repr__(self):
+		return '<OldValues: %s>' % repr(self.instance)
 
 
 class TrackChanges(BaseChangeTracker):
@@ -205,11 +265,11 @@ class TrackChanges(BaseChangeTracker):
 	@property
 	def changed_fields(self):
 		"""
-		A :py:obj:`tuple` of changed fields.
+		A :py:obj:`set` of changed fields.
 		
 		"""
 		
-		return tuple(self._changed_fields.keys())
+		return set(self._meta._forward_fields_map[name].name for name in self._changed_fields.keys())
 	
 	@property
 	def old_values(self):
@@ -218,21 +278,9 @@ class TrackChanges(BaseChangeTracker):
 		
 		"""
 		
-		old_values = self.new_values
-		old_values.update(self._changed_fields)
-		
-		return old_values
+		return OldValues(self)
 	
-	@property
-	def new_values(self):
-		"""
-		A :py:class:`dict` of the new field values.
-		
-		"""
-		
-		return {field.name: getattr(self, field.name) for field in self._meta.get_fields()}
-	
-	def revert_fields(self, fields=None):
+	def revert_fields(self, field_names=None):
 		"""
 		Reverts supplied fields to their original values.
 		
@@ -240,9 +288,39 @@ class TrackChanges(BaseChangeTracker):
 		
 		"""
 		
-		for field in fields:
-			if field in self._changed_fields:
-				setattr(self, field, self._changed_fields[field])
+		if not field_names:
+			for field_name in self.changed_fields:
+				self.revert_field(field_name)
+		
+		else:
+			for field_name in field_names:
+				self.revert_field(field_name)
+	
+	def revert_field(self, field_name):
+		if field_name in self._meta._forward_fields_map:
+			field = self._meta._forward_fields_map[field_name]
+			
+			if field.name in self._changed_fields:
+				# Bypass our __setattr__ since we know what the result will be.
+				super(BaseChangeTracker, self).__setattr__(field.name, self._changed_fields[field.name])
+				self._changed_fields.pop(field.name)
+			
+			if field.attname in self._changed_fields:
+				super(BaseChangeTracker, self).__setattr__(field.attname, self._changed_fields[field.attname])
+				
+				# If you don't have a hydrated instance and you set a related
+				# field to None, the field cache is also set to None. Since
+				# when reverting a dehydrated instance we only set the pk
+				# attribute, we have to also clear the cache ourselves if the
+				# instance in it is None or otherwise incorrect to restore
+				# expected behavior.
+				if field.is_relation:
+					hydrated_old = getattr(self, getattr(self.__class__, field.name).cache_name, DoesNotExist)
+					
+					if hydrated_old is not DoesNotExist and (hydrated_old is None or hydrated_old.pk != self._changed_fields[field.attname]):
+						delattr(self, getattr(self.__class__, field.name).cache_name)
+				
+				self._changed_fields.pop(field.attname)
 
 
 class HideMetaOpts(models.base.ModelBase):
