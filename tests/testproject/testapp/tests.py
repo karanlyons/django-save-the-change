@@ -15,6 +15,8 @@ from django.test import TestCase
 
 from testproject.testapp.models import Enlightenment, EnlightenedModel
 
+ATTR_MISSING = object()
+
 
 class EnlightenedModelTestCase(TestCase):
 	def setUp(self):
@@ -27,8 +29,8 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.uploads = os.path.abspath(os.path.join(self.penny_front, '..', 'testproject', 'uploads'))
 		
-		self.knowledge = Enlightenment.objects.create(aspect='knowledge')
-		self.wisdom = Enlightenment.objects.create(aspect='wisdom')
+		self.knowledge = Enlightenment.objects.create(id=100, aspect='knowledge')
+		self.wisdom = Enlightenment.objects.create(id=200, aspect='wisdom')
 		
 		self.old_values = {
 			'big_integer': 3735928559,
@@ -40,6 +42,7 @@ class EnlightenedModelTestCase(TestCase):
 			'decimal': Decimal('0.02'),
 			'email': 'gautama@kapilavastu.org',
 			'enlightenment': self.knowledge,
+			'enlightenment_id': self.knowledge.id,
 #			'file': File(open(self.penny_front), 'penny_front_file.png'),
 			'file_path': 'uploads/penny_front_file.png',
 			'float': 1.61803,
@@ -67,6 +70,7 @@ class EnlightenedModelTestCase(TestCase):
 			'decimal': Decimal('3.50'),
 			'email': 'maitreya@unknown.org',
 			'enlightenment': self.wisdom,
+			'enlightenment_id': self.wisdom.id,
 #			'file': File(open(self.penny_back), 'penny_back_file.png'),
 			'file_path': 'uploads/penny_back_file.png',
 			'float': 3.14159,
@@ -83,6 +87,12 @@ class EnlightenedModelTestCase(TestCase):
 			'time': datetime.time(0, 0, 0),
 			'URL': 'https://github.com/karanlyons/django-save-the-change',
 		}
+		
+		# Note that "*_id" fields are intentionally ignored in various
+		# tests, as per STC API these "true" attname fields are to be
+		# hidden.
+		self.old_public_values = {k: v for k, v in self.old_values.iteritems() if not k.endswith('_id')}
+		self.new_public_values = {k: v for k, v in self.new_values.iteritems() if not k.endswith('_id')}
 	
 	def create_initial(self):
 		self.tearDown()
@@ -90,15 +100,15 @@ class EnlightenedModelTestCase(TestCase):
 		m = EnlightenedModel(**self.old_values)
 		m.save()
 		
-		self.old_values['id'] = m.id
-		self.new_values['id'] = m.id
+		self.old_values['id'] = self.old_public_values['id'] = m.id
+		self.new_values['id'] = self.new_public_values['id'] = m.id
 		
 		return m
 	
 	def create_changed(self):
 		m = self.create_initial()
 		
-		for field_name, value in self.new_values.items():
+		for field_name, value in self.new_public_values.items():
 			setattr(m, field_name, value)
 		
 		return m
@@ -106,7 +116,7 @@ class EnlightenedModelTestCase(TestCase):
 	def create_reverted(self):
 		m = self.create_changed()
 		
-		for field_name, value in self.old_values.items():
+		for field_name, value in self.old_public_values.items():
 			setattr(m, field_name, value)
 		
 		return m
@@ -116,10 +126,13 @@ class EnlightenedModelTestCase(TestCase):
 		
 		m.save()
 		
-		self.old_values['id'] = m.id
-		self.new_values['id'] = m.id
+		self.old_values['id'] = self.old_public_values['id'] = m.id
+		self.new_values['id'] = self.new_public_values['id'] = m.id
 		
 		return m
+	
+	def get_model_attrs(self, model):
+		return {attr: getattr(model, attr, ATTR_MISSING) for attr in self.new_values}
 	
 	def test_initial__changed_fields(self):
 		m = self.create_initial()
@@ -129,7 +142,7 @@ class EnlightenedModelTestCase(TestCase):
 	def test_initial_changed_fields(self):
 		m = self.create_initial()
 		
-		self.assertEquals(m.changed_fields, ())
+		self.assertEquals(m.changed_fields, set())
 	
 	def test_initial_has_changed(self):
 		m = self.create_initial()
@@ -139,26 +152,26 @@ class EnlightenedModelTestCase(TestCase):
 	def test_initial_new_values(self):
 		m = self.create_initial()
 		
-		self.assertEquals(m.new_values, self.old_values)
+		self.assertEquals(self.get_model_attrs(m), self.old_values)
 	
 	def test_initial_old_values(self):
 		m = self.create_initial()
 		
-		self.assertEquals(m.old_values, self.old_values)
+		self.assertEquals(dict(m.old_values), self.old_public_values)
 	
 	def test_changed__changed_fields(self):
 		m = self.create_changed()
 		old_values = self.old_values
-		old_values.pop('id')
+		del(old_values['id'])
 		
 		self.assertEquals(m._changed_fields, old_values)
 	
 	def test_changed_changed_fields(self):
 		m = self.create_changed()
-		new_values = self.new_values
-		new_values.pop('id')
+		new_public_values = self.new_public_values
+		del(new_public_values['id'])
 		
-		self.assertEquals(sorted(m.changed_fields), sorted(new_values.keys()))
+		self.assertEquals(sorted(m.changed_fields), sorted(new_public_values.iterkeys()))
 	
 	def test_changed_has_changed(self):
 		m = self.create_changed()
@@ -168,19 +181,18 @@ class EnlightenedModelTestCase(TestCase):
 	def test_changed_new_values(self):
 		m = self.create_changed()
 		
-		self.assertEquals(m.new_values, self.new_values)
+		self.assertEquals(self.get_model_attrs(m), self.new_values)
 	
 	def test_changed_old_values(self):
 		m = self.create_changed()
 		
-		self.assertEquals(m.old_values, self.old_values)
+		self.assertEquals(dict(m.old_values), self.old_public_values)
 	
 	def test_changed_reverts(self):
 		m = self.create_changed()
-		
 		m.revert_fields(self.new_values.keys())
 		
-		self.assertEquals(m.new_values, self.old_values)
+		self.assertEquals(self.get_model_attrs(m), self.old_values)
 	
 	def test_reverted__changed_fields(self):
 		m = self.create_reverted()
@@ -190,7 +202,7 @@ class EnlightenedModelTestCase(TestCase):
 	def test_reverted_changed_fields(self):
 		m = self.create_reverted()
 		
-		self.assertEquals(m.changed_fields, ())
+		self.assertEquals(m.changed_fields, set())
 	
 	def test_reverted_has_changed(self):
 		m = self.create_reverted()
@@ -200,12 +212,12 @@ class EnlightenedModelTestCase(TestCase):
 	def test_reverted_new_values(self):
 		m = self.create_reverted()
 		
-		self.assertEquals(m.new_values, self.old_values)
+		self.assertEquals(self.get_model_attrs(m), self.old_values)
 	
 	def test_reverted_old_values(self):
 		m = self.create_reverted()
 		
-		self.assertEquals(m.old_values, self.old_values)
+		self.assertEquals(dict(m.old_values), self.old_public_values)
 	
 	def test_saved__changed_fields(self):
 		m = self.create_saved()
@@ -215,7 +227,7 @@ class EnlightenedModelTestCase(TestCase):
 	def test_saved_changed_fields(self):
 		m = self.create_saved()
 		
-		self.assertEquals(m.changed_fields, ())
+		self.assertEquals(m.changed_fields, set())
 	
 	def test_saved_has_changed(self):
 		m = self.create_saved()
@@ -225,12 +237,12 @@ class EnlightenedModelTestCase(TestCase):
 	def test_saved_new_values(self):
 		m = self.create_saved()
 		
-		self.assertEquals(m.new_values, self.new_values)
+		self.assertEquals(self.get_model_attrs(m), self.new_values)
 	
 	def test_saved_old_values(self):
 		m = self.create_saved()
 		
-		self.assertEquals(m.old_values, self.new_values)
+		self.assertEquals(dict(m.old_values), self.new_public_values)
 	
 	def test_changed_twice_new_values(self):
 		m = self.create_changed()
@@ -238,7 +250,7 @@ class EnlightenedModelTestCase(TestCase):
 		m.text = 'newer'
 		new_values['text'] = 'newer'
 		
-		self.assertEquals(m.new_values, new_values)
+		self.assertEquals(self.get_model_attrs(m), new_values)
 	
 	#def test_updated_together_values(self):
 	#	m = self.create_saved()

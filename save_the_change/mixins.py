@@ -26,7 +26,11 @@ IMMUTABLE_TYPES = set(getattr(settings, 'STC_IMMUTABLE_TYPES', (
 	UUID
 ) + six.integer_types + six.string_types))
 
-INFINITELY_ITERABLE_IMMUTABLE_TYPES = set(getattr(settings, 'STC_INFINITELY_ITERABLE_IMMUTABLE_TYPES', (six.text_type, six.binary_type) + six.string_types))
+INFINITELY_ITERABLE_IMMUTABLE_TYPES = set(getattr(
+	settings,
+	'STC_INFINITELY_ITERABLE_IMMUTABLE_TYPES',
+	(six.text_type, six.binary_type) + six.string_types
+))
 
 
 class DoesNotExist:
@@ -78,8 +82,13 @@ class BaseChangeTracker(object):
 		
 		self._mutable_fields = {} #: A :py:class:`dict` storing likely mutable fields.
 		self._changed_fields = {} #: A :py:class:`dict` storing changed fields.
+		
+		for field in self._meta.concrete_fields:
+			if is_mutable(field.get_default()):
+				self.__getattribute__ = self.___getattribute__
+				break
 	
-	def __getattribute__(self, name):
+	def ___getattribute__(self, name):
 		"""
 		Checks the returned value from fields to see if it's known to be
 		immutable. If it isn't, adds it to :attr:`._mutable_fields` so we know
@@ -115,51 +124,83 @@ class BaseChangeTracker(object):
 			except FieldDoesNotExist:
 				field = None
 			
+			different_attname = field.attname != field.name
+			
 			if field and not field.hidden and field.__class__ not in (ManyToManyField, ManyToOneRel):
-				old = self.__dict__.get(field.attname, DoesNotExist)
+				old = None
+				new = None
 				
-				if old is not DoesNotExist and field.is_relation:
+				attold = self.__dict__.get(field.attname, DoesNotExist)
+				
+				if attold is not DoesNotExist and field.is_relation:
 					try:
 						# If we've already got a hydrated object we can stash,
 						# awesome.
-						hydrated_old = getattr(self, getattr(self.__class__, field.name).cache_name)
+						hydrated_attold = getattr(self, getattr(self.__class__, field.name).cache_name)
 						
-						if hydrated_old.pk != old:
-							hydrated_old = DoesNotExist
+						if hydrated_attold.pk != attold:
+							attold = DoesNotExist
+						
+						else:
+							old = hydrated_attold
 					
 					except AttributeError:
-						hydrated_old = DoesNotExist
+						attold = DoesNotExist
 				
-				else:
-					hydrated_old = DoesNotExist
+				if old is None:
+					old = self.__dict__.get(field.name, DoesNotExist) if different_attname else attold
 				
 				# A parent's __setattr__ may change value.
 				super(BaseChangeTracker, self).__setattr__(name, value)
 				
-				new = self.__dict__.get(field.attname, DoesNotExist)
+				attnew = self.__dict__.get(field.attname, DoesNotExist)
+				
+				if attnew is not DoesNotExist and field.is_relation:
+					try:
+						# If we've already got a hydrated object we can stash,
+						# awesome.
+						hydrated_attnew = getattr(self, getattr(self.__class__, field.name).cache_name)
+						
+						if hydrated_attnew.pk != attnew:
+							attnew = DoesNotExist
+						
+						else:
+							new = hydrated_attnew
+					
+					except AttributeError:
+						attnew = DoesNotExist
+				
+				if new is None:
+					new = self.__dict__.get(field.name, DoesNotExist) if different_attname else attnew
 				
 				try:
-					changed = (old != new)
+					changed = (attold != attnew)
 				
 				except Exception: # pragma: no cover (covers naive/aware datetime comparison failure; unreachable in py3)
 					changed = True
 				
 				if changed:
-					if field.attname in self._changed_fields:
-						if self._changed_fields[field.attname] == new:
-							# We've changed this field back to its original
-							# value from the database. No need to push it
-							# back up.
-							self._changed_fields.pop(field.attname, None)
-							
-							if field.attname != field.name:
+					if name == field.name:
+						if field.name in self._changed_fields:
+							if self._changed_fields[field.name] == new:
 								self._changed_fields.pop(field.name, None)
-					
-					else:
-						self._changed_fields[field.attname] = copy(old)
+								
+								if field.attname != field.name:
+									self._changed_fields.pop(field.attname, None)
 						
-						if field.attname != field.name and hydrated_old is not DoesNotExist:
-							self._changed_fields[field.name] = copy(hydrated_old)
+						else:
+							self._changed_fields[field.name] = copy(old)
+							
+							if different_attname:
+								self._changed_fields[field.attname] = copy(attold)
+					
+					elif name == field.attname:
+						if field.attname in self._changed_fields:
+							if self._changed_fields[field.attname] == attnew:
+								self._changed_fields.pop(field.attname, None)
+						
+						else:
+							self._changed_fields[field.attname] = copy(attold)
 			
 			else:
 				super(BaseChangeTracker, self).__setattr__(name, value)
@@ -302,11 +343,11 @@ class TrackChanges(BaseChangeTracker):
 			
 			if field.name in self._changed_fields:
 				# Bypass our __setattr__ since we know what the result will be.
-				super(BaseChangeTracker, self).__setattr__(field.name, self._changed_fields[field.name])
-				self._changed_fields.pop(field.name)
+				self.__dict__[field.name] = self._changed_fields[field.name]
+				del(self._changed_fields[field.name])
 			
 			if field.attname in self._changed_fields:
-				super(BaseChangeTracker, self).__setattr__(field.attname, self._changed_fields[field.attname])
+				self.__dict__[field.attname] = self._changed_fields[field.attname]
 				
 				# If you don't have a hydrated instance and you set a related
 				# field to None, the field cache is also set to None. Since
@@ -320,7 +361,7 @@ class TrackChanges(BaseChangeTracker):
 					if hydrated_old is not DoesNotExist and (hydrated_old is None or hydrated_old.pk != self._changed_fields[field.attname]):
 						delattr(self, getattr(self.__class__, field.name).cache_name)
 				
-				self._changed_fields.pop(field.attname)
+				del(self._changed_fields[field.attname])
 
 
 class HideMetaOpts(models.base.ModelBase):

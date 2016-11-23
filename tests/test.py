@@ -6,6 +6,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'testproject.settings'
 
@@ -16,7 +17,7 @@ from django.conf import settings
 
 def run_tests():
 	django.setup()
-	sys.exit(bool(get_runner(settings)(verbosity=1, interactive=True).run_tests(['testproject.testapp'])))
+	sys.exit(bool(get_runner(settings)(verbosity=1, interactive=True).run_tests(['testproject.testapp.tests'])))
 
 
 if __name__ == '__main__':
