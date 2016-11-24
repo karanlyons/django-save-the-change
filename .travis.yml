@@ -2,7 +2,6 @@ language: python
 
 python:
   - "2.7"
-  - "3.2"
   - "3.3"
   - "3.4"
   - "3.5"
@@ -15,11 +14,9 @@ env:
   - DJANGO_VERSION=1.9
 
 install:
-  - pip install -q coveralls
-  - pip install -q pytz==2015.7
-  - pip install -q pillow
-  - pip install -q django==$DJANGO_VERSION
-  - pip install -q -e .
+  - pip install -r requirements.txt
+  - pip install django==$DJANGO_VERSION
+  - pip install -e .
 
 script:
   - coverage run --source=save_the_change setup.py test
