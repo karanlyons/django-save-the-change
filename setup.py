@@ -10,7 +10,7 @@ except ImportError:
 	from distutils.core import setup
 
 tests_require = []
-for line in open('requirements.txt', 'rU').readlines():
+for line in open('test_requirements.txt', 'rU').readlines():
 	if line and line not in '\n' and not line.startswith(('#', '-')):
 		tests_require.append(line.replace('\n', ''))
 
