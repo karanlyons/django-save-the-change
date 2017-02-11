@@ -9,10 +9,10 @@ try:
 except ImportError:
 	from distutils.core import setup
 
-install_requires = []
+tests_require = []
 for line in open('requirements.txt', 'rU').readlines():
 	if line and line not in '\n' and not line.startswith(('#', '-')):
-		install_requires.append(line.replace('\n', ''))
+		tests_require.append(line.replace('\n', ''))
 
 setup(
 	name="django-save-the-change",
@@ -27,7 +27,7 @@ setup(
 	package_dir={'save_the_change': 'save_the_change'},
 	package_data={'': ['README.rst', 'HISTORY.rst', 'LICENSE']},
 	include_package_data=True,
-	install_requires=install_requires,
+	tests_require=tests_require,
 	zip_safe=False,
 	classifiers=(
 		'Development Status :: 5 - Production/Stable',
