@@ -6,7 +6,7 @@ import os
 
 from django.db import models
 
-from save_the_change.mixins import SaveTheChange, TrackChanges#, UpdateTogetherModel
+from save_the_change.mixins import SaveTheChange, TrackChanges, UpdateTogether
 
 
 class Enlightenment(models.Model):
@@ -21,7 +21,10 @@ class Enlightenment(models.Model):
 		return self.aspect
 
 
-class EnlightenedModel(SaveTheChange, TrackChanges, models.Model):
+@SaveTheChange
+@TrackChanges
+@UpdateTogether(('big_integer', 'small_integer'))
+class EnlightenedModel(models.Model):
 	"""
 	A model to test (almost) everything else.
 	
@@ -35,7 +38,7 @@ class EnlightenedModel(SaveTheChange, TrackChanges, models.Model):
 	comma_seperated_integer = models.CommaSeparatedIntegerField(max_length=32)
 	date = models.DateField()
 	date_time = models.DateTimeField()
-	decimal = models.DecimalField(max_digits=16, decimal_places=8)
+	decimal = models.DecimalField(max_digits=3, decimal_places=2)
 	email = models.EmailField()
 	enlightenment = models.ForeignKey(Enlightenment)
 #	file = models.FileField(upload_to='./')
@@ -53,8 +56,3 @@ class EnlightenedModel(SaveTheChange, TrackChanges, models.Model):
 	text = models.TextField()
 	time = models.TimeField()
 	URL = models.URLField()
-	
-	#class Meta:
-	#	update_together = (
-	#		('big_integer', 'small_integer'),
-	#	)

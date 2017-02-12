@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division, absolute_import, print_function
+from __future__ import division, absolute_import, print_function, unicode_literals
 
 import os
 import datetime
@@ -88,16 +88,13 @@ class EnlightenedModelTestCase(TestCase):
 			'URL': 'https://github.com/karanlyons/django-save-the-change',
 		}
 		
-		# Note that "*_id" fields are intentionally ignored in various
-		# tests, as per STC API these "true" attname fields are to be
-		# hidden.
 		self.old_public_values = {k: v for k, v in self.old_values.iteritems() if not k.endswith('_id')}
 		self.new_public_values = {k: v for k, v in self.new_values.iteritems() if not k.endswith('_id')}
 	
 	def create_initial(self):
 		self.tearDown()
 		
-		m = EnlightenedModel(**self.old_values)
+		m = EnlightenedModel(**self.old_public_values)
 		m.save()
 		
 		self.old_values['id'] = self.old_public_values['id'] = m.id
@@ -108,7 +105,7 @@ class EnlightenedModelTestCase(TestCase):
 	def create_changed(self):
 		m = self.create_initial()
 		
-		for field_name, value in self.new_public_values.items():
+		for field_name, value in self.new_values.items():
 			setattr(m, field_name, value)
 		
 		return m
@@ -116,7 +113,7 @@ class EnlightenedModelTestCase(TestCase):
 	def create_reverted(self):
 		m = self.create_changed()
 		
-		for field_name, value in self.old_public_values.items():
+		for field_name, value in self.old_values.items():
 			setattr(m, field_name, value)
 		
 		return m
@@ -157,7 +154,22 @@ class EnlightenedModelTestCase(TestCase):
 	def test_initial_old_values(self):
 		m = self.create_initial()
 		
-		self.assertEquals(dict(m.old_values), self.old_public_values)
+		self.assertEquals(dict(m.old_values), self.old_values)
+	
+	def test_old_values_with_bad_key(self):
+		m = self.create_initial()
+		
+		self.assertRaises(KeyError, lambda: m.old_values['bad_key'])
+	
+	def test_old_values_with_bad_attr(self):
+		m = self.create_initial()
+		
+		self.assertRaises(AttributeError, lambda: m.old_values.bad_key)
+	
+	def test_initial_saved_without_changes(self):
+		m = self.create_initial()
+		
+		self.assertNumQueries(0, lambda: m.save())
 	
 	def test_changed__changed_fields(self):
 		m = self.create_changed()
@@ -166,12 +178,51 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.assertEquals(m._changed_fields, old_values)
 	
+	def test_touched_mutable_field__mutable_fields(self):
+		m = self.create_initial()
+		m.enlightenment
+		mutable_fields = {'enlightenment': self.old_values['enlightenment']}
+		
+		self.assertEquals(m._mutable_fields, mutable_fields)
+	
+	def test_changed_inside_mutable_field__mutable_fields(self):
+		m = self.create_initial()
+		m.enlightenment.aspect = 'Holistic'
+		old_values = {'enlightenment': self.old_values['enlightenment']}
+		
+		self.assertEquals(m._mutable_fields, old_values)
+	
+	def test_touched_then_changed_inside_mutable_field__mutable_fields(self):
+		m = self.create_initial()
+		m.enlightenment
+		m.enlightenment = self.new_values['enlightenment']
+		mutable_fields = {'enlightenment': self.old_values['enlightenment']}
+		
+		self.assertEquals(m._mutable_fields, mutable_fields)
+	
+	def test_touched_immutable_field_with_mutable_element__mutable_fields(self):
+		m = self.create_initial()
+		m.comma_seperated_integer = (1, [0], 1)
+		m._changed_fields = {}
+		mutable_fields = {'comma_seperated_integer': (1, [0], 1)}
+		m.comma_seperated_integer
+		
+		self.assertEquals(m._mutable_fields, mutable_fields)
+	
+	def test_touched_immutable_field_with_immutable_elements__changed_fields(self):
+		m = self.create_initial()
+		m.comma_seperated_integer = (1, 1, 1)
+		m._changed_fields = {}
+		m.comma_seperated_integer
+		
+		self.assertEquals(m._changed_fields, {})
+	
 	def test_changed_changed_fields(self):
 		m = self.create_changed()
-		new_public_values = self.new_public_values
-		del(new_public_values['id'])
+		new_values = self.new_values
+		del(new_values['id'])
 		
-		self.assertEquals(sorted(m.changed_fields), sorted(new_public_values.iterkeys()))
+		self.assertEquals(sorted(m.changed_fields), sorted(new_values.iterkeys()))
 	
 	def test_changed_has_changed(self):
 		m = self.create_changed()
@@ -186,11 +237,19 @@ class EnlightenedModelTestCase(TestCase):
 	def test_changed_old_values(self):
 		m = self.create_changed()
 		
-		self.assertEquals(dict(m.old_values), self.old_public_values)
+		self.assertEquals(dict(m.old_values), self.old_values)
 	
 	def test_changed_reverts(self):
 		m = self.create_changed()
 		m.revert_fields(self.new_values.keys())
+		
+		self.assertEquals(self.get_model_attrs(m), self.old_values)
+	
+	def test_changed_reverts_all(self):
+		m = self.create_changed()
+		m.revert_field('enlightenment')
+		m.enlightenment.aspect = 'Holistic'
+		m.revert_fields()
 		
 		self.assertEquals(self.get_model_attrs(m), self.old_values)
 	
@@ -217,7 +276,7 @@ class EnlightenedModelTestCase(TestCase):
 	def test_reverted_old_values(self):
 		m = self.create_reverted()
 		
-		self.assertEquals(dict(m.old_values), self.old_public_values)
+		self.assertEquals(dict(m.old_values), self.old_values)
 	
 	def test_saved__changed_fields(self):
 		m = self.create_saved()
@@ -242,7 +301,7 @@ class EnlightenedModelTestCase(TestCase):
 	def test_saved_old_values(self):
 		m = self.create_saved()
 		
-		self.assertEquals(dict(m.old_values), self.new_public_values)
+		self.assertEquals(dict(m.old_values), self.new_values)
 	
 	def test_changed_twice_new_values(self):
 		m = self.create_changed()
@@ -252,25 +311,25 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.assertEquals(self.get_model_attrs(m), new_values)
 	
-	#def test_updated_together_values(self):
-	#	m = self.create_saved()
-	#	EnlightenedModel.objects.all().update(big_integer=0)
-	#	
-	#	new_values = self.new_values
-	#	new_values['small_integer'] = 0
-	#	
-	#	m.small_integer = new_values['small_integer']
-	#	m.save()
-	#	m = EnlightenedModel.objects.all()[0]
-	#	
-	#	self.assertEquals(m.new_values, new_values)
+	def test_updated_together_values(self):
+		m = self.create_saved()
+		EnlightenedModel.objects.filter(pk=m.pk).update(big_integer=0)
+		
+		new_values = self.new_values
+		new_values['small_integer'] = 0
+		
+		m.small_integer = new_values['small_integer']
+		m.save()
+		m.refresh_from_db()
+		
+		self.assertEquals(self.get_model_attrs(m), new_values)
 	
-	#def test_updated_together_with_deferred_fields(self):
-	#	m = self.create_saved()
-	#	
-	#	m = EnlightenedModel.objects.only('big_integer').get(pk=m.pk)
-	#	
-	#	self.assertEquals(m.new_values, self.new_values)
+	def test_updated_together_with_deferred_fields(self):
+		m = self.create_saved()
+		
+		m = EnlightenedModel.objects.only('big_integer').get(pk=m.pk)
+		
+		self.assertEquals(self.get_model_attrs(m), self.new_values)
 	
 	"""
 	Regression Tests
@@ -286,7 +345,7 @@ class EnlightenedModelTestCase(TestCase):
 		"""
 		
 		del(self.old_values['enlightenment'])
-		m = EnlightenedModel(**self.old_values)
+		m = EnlightenedModel(**self.old_public_values)
 		
 		try:
 			m.enlightenment = self.knowledge
