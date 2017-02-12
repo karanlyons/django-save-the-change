@@ -38,7 +38,7 @@ class EnlightenedModelTestCase(TestCase):
 			'char': '2 cents',
 			'comma_seperated_integer': '4,8,15',
 			'date': datetime.date(1999, 12, 31),
-			'date_time': datetime.datetime(1999, 12, 31, 23, 59, 59),
+			'date_time': pytz.utc.localize(datetime.datetime(1999, 12, 31, 23, 59, 59)),
 			'decimal': Decimal('0.02'),
 			'email': 'gautama@kapilavastu.org',
 			'enlightenment': self.knowledge,
