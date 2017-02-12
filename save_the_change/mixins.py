@@ -93,10 +93,12 @@ class BaseChangeTracker(object):
 		# In practice, since most developers aren't dynamically modifying the
 		# fields attached to an instance this is a penalty that would be
 		# incurred for all instances anyway.
-		if type(self).__getattribute__ != self.___getattribute__:
+		cls = type(self)
+		
+		if cls.__getattribute__ != cls.___getattribute__:
 			for field in self._meta.concrete_fields:
 				if is_mutable(field.get_default()):
-					type(self).__getattribute__ = self.___getattribute__
+					cls.__getattribute__ = cls.___getattribute__
 					break
 	
 	def ___getattribute__(self, name):
