@@ -112,15 +112,27 @@ class BaseChangeTracker(object):
 		
 		value = super(BaseChangeTracker, self).__getattribute__(name)
 		
-		if (
-			not hasattr(value, '__call__') and
-			'_mutable_fields' in super(BaseChangeTracker, self).__getattribute__('__dict__')
-			and name in (field.attname for field in super(BaseChangeTracker, self).__getattribute__('_meta').concrete_fields)
-		):
-			# We can't do an isinstance() check here since a subclass could
-			# violate the immutability promise.
-			if is_mutable(value):
-				super(BaseChangeTracker, self).__getattribute__('_mutable_fields')[name] = deepcopy(value)
+		if not hasattr(value, '__call__'):
+			attrs = super(BaseChangeTracker, self).__getattribute__('__dict__')
+			
+			# We only want to copy the value on first access, as otherwise we'd
+			# be constantly overwriting our "orignal" copy.
+			if '_mutable_fields' in attrs and name not in attrs['_mutable_fields']:
+				try:
+					field = super(BaseChangeTracker, self).__getattribute__('_meta').get_field(name)
+				
+				except FieldDoesNotExist:
+					pass
+				
+				else:
+					# Since we're only here to monitor mutable values that could
+					# go back to the database, we care about the actual column
+					# backed values.
+					if field.concrete and field.attname == name:
+						# We can't just do a simple isinstance() check here
+						# as a subclass could violate the immutability promise.
+						if is_mutable(value):
+							super(BaseChangeTracker, self).__getattribute__('_mutable_fields')[name] = deepcopy(value)
 		
 		return value
 	
