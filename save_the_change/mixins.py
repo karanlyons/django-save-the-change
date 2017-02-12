@@ -83,10 +83,21 @@ class BaseChangeTracker(object):
 		self._mutable_fields = {} #: A :py:class:`dict` storing likely mutable fields.
 		self._changed_fields = {} #: A :py:class:`dict` storing changed fields.
 		
-		for field in self._meta.concrete_fields:
-			if is_mutable(field.get_default()):
-				self.__getattribute__ = self.___getattribute__
-				break
+		# Overriding __getattribute__ has not so nice performance penalties, so
+		# we try to avoid doing it at all if possible. Unfortunately, due to
+		# new-style classes dunder method lookup rules we've got to override it
+		# at a class and not an instance level, which means if any instance has
+		# a field with a mutable default all instances of that class will incur
+		# the penalty.
+		#
+		# In practice, since most developers aren't dynamically modifying the
+		# fields attached to an instance this is a penalty that would be
+		# incurred for all instances anyway.
+		if type(self).__getattribute__ != self.___getattribute__:
+			for field in self._meta.concrete_fields:
+				if is_mutable(field.get_default()):
+					type(self).__getattribute__ = self.___getattribute__
+					break
 	
 	def ___getattribute__(self, name):
 		"""
