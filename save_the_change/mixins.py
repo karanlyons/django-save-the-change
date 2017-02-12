@@ -128,6 +128,12 @@ class BaseChangeTracker(object):
 					# Since we're only here to monitor mutable values that could
 					# go back to the database, we care about the actual column
 					# backed values.
+					#
+					# In practice this means that accessing and then modifying
+					# an FK field's instance will not result in that field
+					# showing up as changed. This is intended, as in general the
+					# handling of that instance should happen within the
+					# instance itself.
 					if field.concrete and field.attname == name:
 						# We can't just do a simple isinstance() check here
 						# as a subclass could violate the immutability promise.
@@ -214,10 +220,18 @@ class BaseChangeTracker(object):
 									self._changed_fields.pop(field.attname, None)
 						
 						else:
-							self._changed_fields[field.name] = copy(old)
+							# If this was a mutable, column backed field then we
+							# want to store the old value in _mutable_fields if
+							# the original is not already there.
+							if name == field.attname and is_mutable(old):
+								if field.attname not in self._mutable_fields:
+									self._mutable_fields[field.attname] = deepcopy(attold)
 							
-							if different_attname:
-								self._changed_fields[field.attname] = copy(attold)
+							else:
+								self._changed_fields[field.name] = copy(old)
+								
+								if different_attname:
+									self._changed_fields[field.attname] = copy(attold)
 					
 					elif name == field.attname:
 						if field.attname in self._changed_fields:
@@ -279,24 +293,17 @@ class OldValues(Mapping):
 		field = self.instance._meta._forward_fields_map[field_name]
 		
 		try:
-			if field.attname not in self.instance._changed_fields:
-				return getattr(self.instance, field.name)
+			if field.attname in self.instance._mutable_fields:
+				return self.instance._mutable_fields[field.attname]
 			
-			elif field.name in self.instance._changed_fields:
+			elif field_name in self.instance._changed_fields:
+				return self.instance._changed_fields[field_name]
+			
+			elif field.is_relation and field.name in self.instance._changed_fields:
 				return self.instance._changed_fields[field.name]
 			
-			elif field.is_relation and self.instance._changed_fields[field.attname] is not None:
-				try:
-					self.instance._changed_fields[field.name] = getattr(
-						self.instance.__class__,
-						field.name
-					).get_queryset().get(pk=self.instance._changed_fields[field.attname])
-				
-				except self.instance.DoesNotExist:
-					self.instance._changed_fields[field.name] = DoesNotExist
-			
 			else:
-				return self.instance._changed_fields[field.attname]
+				return getattr(self.instance, field_name)
 		
 		except (AttributeError, KeyError):
 			raise KeyError(field_name)
@@ -326,7 +333,10 @@ class TrackChanges(BaseChangeTracker):
 		
 		"""
 		
-		return bool(self._changed_fields)
+		return (
+			bool(self._changed_fields) or
+			any(getattr(self, name) != value for name, value in six.iteritems(self._mutable_fields))
+		)
 	
 	@property
 	def changed_fields(self):
@@ -335,7 +345,10 @@ class TrackChanges(BaseChangeTracker):
 		
 		"""
 		
-		return set(self._meta._forward_fields_map[name].name for name in self._changed_fields.keys())
+		return (
+			set(self._meta._forward_fields_map[name].name for name in six.iterkeys(self._changed_fields)) |
+			set(self._meta._forward_fields_map[name].name for name, value in six.iteritems(self._mutable_fields) if getattr(self, name) != value)
+		)
 	
 	@property
 	def old_values(self):
@@ -387,6 +400,10 @@ class TrackChanges(BaseChangeTracker):
 						delattr(self, getattr(self.__class__, field.name).cache_name)
 				
 				del(self._changed_fields[field.attname])
+			
+			if field.attname in self._mutable_fields:
+				self.__dict__[field.name] = self._mutable_fields[field.name]
+				del(self._mutable_fields[field.name])
 
 
 class HideMetaOpts(models.base.ModelBase):
