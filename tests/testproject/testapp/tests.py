@@ -171,6 +171,17 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.assertNumQueries(0, lambda: m.save())
 	
+	def test_initial_saved_with_changed_id(self):
+		m = self.create_initial()
+		m.pk += 100
+		
+		self.assertEqual(m.changed_fields, {'id'})
+		self.assertEqual(m.old_values.id, self.old_values['id'])
+		
+		m.save()
+		
+		self.assertEqual(m, EnlightenedModel.objects.get(pk=m.pk))
+	
 	def test_changed__changed_fields(self):
 		m = self.create_changed()
 		old_values = self.old_values
