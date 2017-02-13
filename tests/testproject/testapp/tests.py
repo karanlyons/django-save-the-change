@@ -9,11 +9,11 @@ from decimal import Decimal
 
 from django.core.files import File
 from django.core.files.images import ImageFile
-from django.db import models
-from django.db.models.fields.files import FieldFile, ImageFieldFile
 from django.test import TestCase
 
-from testproject.testapp.models import Enlightenment, EnlightenedModel
+from testproject.testapp.models import Enlightenment, EnlightenedModel, Disorder
+
+from save_the_change.decorators import save_the_change_save_hook, update_together_save_hook
 
 ATTR_MISSING = object()
 
@@ -330,6 +330,16 @@ class EnlightenedModelTestCase(TestCase):
 		m = EnlightenedModel.objects.only('big_integer').get(pk=m.pk)
 		
 		self.assertEquals(self.get_model_attrs(m), self.new_values)
+	
+	def test_save_hook_order(self):
+		self.assertEquals(EnlightenedModel._meta.stc_save_hooks, [save_the_change_save_hook, update_together_save_hook])
+	
+	def test_save_hook_order_with_out_of_order_decorators(self):
+		self.assertEquals(Disorder._meta.stc_save_hooks, [save_the_change_save_hook, update_together_save_hook])
+	
+	def update_together_with_multiple_decorators(self):
+		together = {'chaos', 'fire', 'brimstone'}
+		self.assertEquals(Disorder._meta.update_together, {field: together for field in together})
 	
 	"""
 	Regression Tests

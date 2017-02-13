@@ -56,3 +56,13 @@ class EnlightenedModel(models.Model):
 	text = models.TextField()
 	time = models.TimeField()
 	URL = models.URLField()
+
+
+@UpdateTogether(('chaos', 'fire'))
+@SaveTheChange
+@UpdateTogether(('fire', 'brimstone'))
+@SaveTheChange
+class Disorder(models.Model):
+	chaos = models.BooleanField()
+	fire = models.BooleanField()
+	brimstone = models.BooleanField()
