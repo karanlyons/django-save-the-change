@@ -21,14 +21,27 @@ class Enlightenment(models.Model):
 		return self.aspect
 
 
+@UpdateTogether(('chaos', 'fire'))
+@SaveTheChange
+@UpdateTogether(('fire', 'brimstone'))
+@SaveTheChange
+class Disorder(models.Model):
+	"""
+	A model to test out of order and duplicate decorators.
+	
+	"""
+	
+	chaos = models.BooleanField()
+	fire = models.BooleanField()
+	brimstone = models.BooleanField()
+
+
 @SaveTheChange
 @TrackChanges
 @UpdateTogether(('big_integer', 'small_integer'))
 class EnlightenedModel(models.Model):
 	"""
 	A model to test (almost) everything else.
-	
-	TODO: Figure out a way to properly test {File,Image}Fields.
 	
 	"""
 	
@@ -57,13 +70,3 @@ class EnlightenedModel(models.Model):
 	text = models.TextField()
 	time = models.TimeField()
 	URL = models.URLField()
-
-
-@UpdateTogether(('chaos', 'fire'))
-@SaveTheChange
-@UpdateTogether(('fire', 'brimstone'))
-@SaveTheChange
-class Disorder(models.Model):
-	chaos = models.BooleanField()
-	fire = models.BooleanField()
-	brimstone = models.BooleanField()
