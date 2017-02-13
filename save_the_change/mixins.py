@@ -96,15 +96,10 @@ def TrackChanges(cls):
 	
 	def revert_fields(self, names=None):
 		if names is None:
-			for name in self._mutable_fields.keys():
-				self.revert_field(name)
-			
-			for name in self._changed_fields.keys():
-				self.revert_field(name)
+			names = list(self._mutable_fields) + list(self._changed_fields)
 		
-		else:
-			for name in names:
-				self.revert_field(name)
+		for name in names:
+			setattr(self, name, self.old_values[name])
 	
 	cls.revert_fields = revert_fields
 	

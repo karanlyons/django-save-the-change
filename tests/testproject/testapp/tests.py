@@ -88,8 +88,8 @@ class EnlightenedModelTestCase(TestCase):
 			'URL': 'https://github.com/karanlyons/django-save-the-change',
 		}
 		
-		self.old_public_values = {k: v for k, v in self.old_values.iteritems() if not k.endswith('_id')}
-		self.new_public_values = {k: v for k, v in self.new_values.iteritems() if not k.endswith('_id')}
+		self.old_public_values = {k: v for k, v in self.old_values.items() if not k.endswith('_id')}
+		self.new_public_values = {k: v for k, v in self.new_values.items() if not k.endswith('_id')}
 	
 	def create_initial(self):
 		self.tearDown()
@@ -222,7 +222,7 @@ class EnlightenedModelTestCase(TestCase):
 		new_values = self.new_values
 		del(new_values['id'])
 		
-		self.assertEquals(sorted(m.changed_fields), sorted(new_values.iterkeys()))
+		self.assertEquals(sorted(m.changed_fields), sorted(new_values.keys()))
 	
 	def test_changed_has_changed(self):
 		m = self.create_changed()
