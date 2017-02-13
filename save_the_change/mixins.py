@@ -2,95 +2,28 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
-from collections import defaultdict, Mapping
-from copy import copy, deepcopy
-from datetime import date, time, datetime, timedelta, tzinfo
-from decimal import Decimal
-from uuid import UUID
+from collections import defaultdict
 
+from django import VERSION
 from django.utils import six
 
+from .util import DoesNotExist
+from .mappings import OldValues
 
-#: A :py:class:`set` listing known immutable types.
-IMMUTABLE_TYPES = set((
-	type(None), bool, float, complex, Decimal,
-	six.text_type, six.binary_type, tuple, frozenset,
-	date, time, datetime, timedelta, tzinfo,
-	UUID
-) + six.integer_types + six.string_types)
+if VERSION[:2] < (1, 10):
+	from .descriptors_1_8 import inject_descriptors
 
-INFINITELY_ITERABLE_IMMUTABLE_TYPES = set(
-	(six.text_type, six.binary_type) + six.string_types
-)
-
-
-class DoesNotExist:
-	pass
-
-
-def is_mutable(obj):
-	if type(obj) not in IMMUTABLE_TYPES:
-		return True
-	
-	elif type(obj) not in INFINITELY_ITERABLE_IMMUTABLE_TYPES:
-		try:
-			for sub_obj in iter(obj):
-				if is_mutable(sub_obj):
-					return True
-		
-		except TypeError:
-			pass
-	
-	return False
-
-
-class ChangeTrackingDescriptor(object):
-	def __init__(self, name, django_descriptor):
-		self.name = name
-		self.django_descriptor = django_descriptor
-	
-	def __get__(self, instance=None, owner=None):
-		value = self.django_descriptor.__get__(instance, owner)
-		
-		if (
-			self.name not in instance.__dict__['_changed_fields'] and
-			self.name not in instance.__dict__['_mutable_fields'] and is_mutable(value)
-		):
-			instance.__dict__['_mutable_fields'][self.name] = deepcopy(value)
-		
-		return value
-	
-	def __set__(self, instance, value):
-		if self.name not in instance.__dict__['_mutable_fields']:
-			old_value = instance.__dict__.get(self.name, DoesNotExist)
-			
-			if old_value is DoesNotExist and hasattr(self.django_descriptor, 'cache_name'):
-				old_value = instance.__dict__.get(self.django_descriptor.cache_name, DoesNotExist)
-			
-			if old_value is not DoesNotExist:
-				if instance.__dict__['_changed_fields'].get(self.name, DoesNotExist) == value:
-					instance.__dict__['_changed_fields'].pop(self.name, None)
-				
-				elif value != old_value:
-					instance.__dict__['_changed_fields'].setdefault(self.name, copy(old_value))
-		
-		if hasattr(self.django_descriptor, '__set__'):
-			self.django_descriptor.__set__(instance, value)
-		
-		else:
-			instance.__dict__[self.name] = value
+else:
+	from .descriptors_1_10 import inject_descriptors
 
 
 def BaseChangeTracker(cls):
 	if not hasattr(cls._meta, 'stc_injected'):
-		for field in cls._meta.concrete_fields:
-			setattr(cls, field.attname, ChangeTrackingDescriptor(field.attname, getattr(cls, field.attname)))
-			
-			if field.attname != field.name:
-				setattr(cls, field.name, ChangeTrackingDescriptor(field.name, getattr(cls, field.name)))
 		
 		original__init__ = cls.__init__
 		original_save = cls.save
+		
+		inject_descriptors(cls)
 		
 		def __init__(self, *args, **kwargs):
 			self._changed_fields = {}
@@ -108,43 +41,6 @@ def BaseChangeTracker(cls):
 		cls._meta.stc_injected = True
 	
 	return cls
-
-
-class OldValues(Mapping):
-	def __init__(self, instance):
-		self.instance = instance
-	
-	def __getattr__(self, name):
-		try:
-			return self.__getitem__(name)
-		
-		except KeyError:
-			raise AttributeError(name)
-	
-	def __getitem__(self, name):
-		try:
-			return self.instance._mutable_fields[name]
-		
-		except KeyError:
-			try:
-				return self.instance._changed_fields[name]
-			
-			except KeyError:
-				try:
-					return getattr(self.instance, name)
-				
-				except AttributeError:
-					raise KeyError(name)
-	
-	def __iter__(self):
-		for name in self.instance._meta._forward_fields_map:
-			yield name
-	
-	def __len__(self):
-		return len(self.instance._meta._forward_fields_map)
-	
-	def __repr__(self):
-		return '<OldValues: %s>' % repr(self.instance)
 
 
 def SaveTheChange(cls):
