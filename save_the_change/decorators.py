@@ -34,9 +34,9 @@ def BaseChangeTracker(cls):
 		
 		def save(self, *args, **kwargs):
 			for save_hook in self._meta._stc_save_hooks:
-				save, args, kwargs = save_hook(self, *args, **kwargs)
+				continue_saving, args, kwargs = save_hook(self, *args, **kwargs)
 				
-				if not save:
+				if not continue_saving:
 					break
 			
 			else:
