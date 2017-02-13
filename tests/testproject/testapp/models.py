@@ -6,7 +6,7 @@ import os
 
 from django.db import models
 
-from save_the_change.mixins import SaveTheChange, TrackChanges, UpdateTogether
+from save_the_change.decorators import SaveTheChange, TrackChanges, UpdateTogether
 
 
 class Enlightenment(models.Model):
