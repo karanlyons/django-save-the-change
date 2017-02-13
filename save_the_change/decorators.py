@@ -11,18 +11,18 @@ from .util import DoesNotExist
 from .mappings import OldValues
 
 if VERSION[:2] < (1, 10):
-	from .descriptors_1_8 import inject_descriptors
+	from .descriptors_1_8 import _inject_descriptors
 
 else:
-	from .descriptors_1_10 import inject_descriptors
+	from .descriptors_1_10 import _inject_descriptors
 
 
 def BaseChangeTracker(cls):
-	if not hasattr(cls._meta, 'stc_injected'):
+	if not hasattr(cls._meta, '_stc_injected'):
 		original__init__ = cls.__init__
 		original_save = cls.save
 		
-		inject_descriptors(cls)
+		_inject_descriptors(cls)
 		
 		def __init__(self, *args, **kwargs):
 			self._changed_fields = {}
@@ -32,7 +32,7 @@ def BaseChangeTracker(cls):
 		cls.__init__ = __init__
 		
 		def save(self, *args, **kwargs):
-			for save_hook in self._meta.stc_save_hooks:
+			for save_hook in self._meta._stc_save_hooks:
 				save, args, kwargs = save_hook(self, *args, **kwargs)
 				
 				if not save:
@@ -45,13 +45,13 @@ def BaseChangeTracker(cls):
 			self._changed_fields = {}
 		cls.save = save
 		
-		cls._meta.stc_injected = True
-		cls._meta.stc_save_hooks = []
+		cls._meta._stc_injected = True
+		cls._meta._stc_save_hooks = []
 	
 	return cls
 
 
-def save_the_change_save_hook(instance, *args, **kwargs):
+def _save_the_change_save_hook(instance, *args, **kwargs):
 	if (
 		not instance._state.adding and
 		hasattr(instance, '_changed_fields') and
@@ -71,14 +71,14 @@ def save_the_change_save_hook(instance, *args, **kwargs):
 
 
 def SaveTheChange(cls):
-	if not hasattr(cls._meta, 'stc_injected') or save_the_change_save_hook not in cls._meta.stc_save_hooks:
+	if not hasattr(cls._meta, '_stc_injected') or _save_the_change_save_hook not in cls._meta._stc_save_hooks:
 		cls = BaseChangeTracker(cls)
 		
-		if update_together_save_hook in cls._meta.stc_save_hooks:
-			cls._meta.stc_save_hooks = [save_the_change_save_hook, update_together_save_hook]
+		if _update_together_save_hook in cls._meta._stc_save_hooks:
+			cls._meta._stc_save_hooks = [_save_the_change_save_hook, _update_together_save_hook]
 		
 		else:
-			cls._meta.stc_save_hooks.append(save_the_change_save_hook)
+			cls._meta._stc_save_hooks.append(_save_the_change_save_hook)
 	
 	return cls
 
@@ -126,7 +126,7 @@ def TrackChanges(cls):
 	return cls
 
 
-def update_together_save_hook(instance, *args, **kwargs):
+def _update_together_save_hook(instance, *args, **kwargs):
 	if 'update_fields' in kwargs:
 		new_update_fields = set(kwargs['update_fields'])
 		
@@ -171,8 +171,8 @@ def UpdateTogether(*groups):
 				for grouped_node in sqaushed_group:
 					cls._meta.update_together[grouped_node] = sqaushed_group
 		
-		if not hasattr(cls._meta, 'stc_injected') or update_together_save_hook not in cls._meta.stc_save_hooks:
-			cls._meta.stc_save_hooks.append(update_together_save_hook)
+		if not hasattr(cls._meta, '_stc_injected') or _update_together_save_hook not in cls._meta._stc_save_hooks:
+			cls._meta._stc_save_hooks.append(_update_together_save_hook)
 		
 		return cls
 	

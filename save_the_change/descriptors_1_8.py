@@ -44,7 +44,7 @@ class ChangeTrackingDescriptor(object):
 			setattr(instance, self.field.attname, value.id)
 
 
-def inject_descriptors(cls):
+def _inject_descriptors(cls):
 	for field in cls._meta.concrete_fields:
 		setattr(cls, field.attname, ChangeTrackingDescriptor(field.attname, field))
 		

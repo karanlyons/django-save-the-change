@@ -13,7 +13,7 @@ from django.test import TestCase
 
 from testproject.testapp.models import Enlightenment, EnlightenedModel, Disorder
 
-from save_the_change.decorators import save_the_change_save_hook, update_together_save_hook
+from save_the_change.decorators import _save_the_change_save_hook, _update_together_save_hook
 
 ATTR_MISSING = object()
 
@@ -354,10 +354,10 @@ class EnlightenedModelTestCase(TestCase):
 		self.assertEquals(self.get_model_attrs(m), self.new_values)
 	
 	def test_save_hook_order(self):
-		self.assertEquals(EnlightenedModel._meta.stc_save_hooks, [save_the_change_save_hook, update_together_save_hook])
+		self.assertEquals(EnlightenedModel._meta._stc_save_hooks, [_save_the_change_save_hook, _update_together_save_hook])
 	
 	def test_save_hook_order_with_out_of_order_decorators(self):
-		self.assertEquals(Disorder._meta.stc_save_hooks, [save_the_change_save_hook, update_together_save_hook])
+		self.assertEquals(Disorder._meta._stc_save_hooks, [_save_the_change_save_hook, _update_together_save_hook])
 	
 	def update_together_with_multiple_decorators(self):
 		together = {'chaos', 'fire', 'brimstone'}
