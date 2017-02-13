@@ -32,11 +32,14 @@ class OldValues(Mapping):
 					raise KeyError(name)
 	
 	def __iter__(self):
-		for name in self.instance._meta._forward_fields_map:
-			yield name
+		for field in self.instance._meta.get_fields():
+			yield field.name
+			
+			if field.name != field.attname:
+				yield field.attname
 	
 	def __len__(self):
-		return len(self.instance._meta._forward_fields_map)
+		return len(self.instance._meta.get_fields())
 	
 	def __repr__(self):
 		return '<OldValues: %s>' % repr(self.instance)

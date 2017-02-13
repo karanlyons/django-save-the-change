@@ -108,7 +108,8 @@ def TrackChanges(cls):
 	cls.old_values = property(old_values)
 	
 	def revert_field(self, name):
-		setattr(self, name, self.old_values[name])
+		if name in self.changed_fields:
+			setattr(self, name, self.old_values[name])
 	
 	cls.revert_field = revert_field
 	
@@ -117,7 +118,8 @@ def TrackChanges(cls):
 			names = list(self._mutable_fields) + list(self._changed_fields)
 		
 		for name in names:
-			setattr(self, name, self.old_values[name])
+			if name in self.changed_fields:
+				setattr(self, name, self.old_values[name])
 	
 	cls.revert_fields = revert_fields
 	

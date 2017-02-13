@@ -100,13 +100,17 @@ class EnlightenedModelTestCase(TestCase):
 		self.old_values['id'] = self.old_public_values['id'] = m.id
 		self.new_values['id'] = self.new_public_values['id'] = m.id
 		
+		self.old_values['holism'] = self.old_public_values['holism'] = m.holism
+		self.new_values['holism'] = self.new_public_values['holism'] = m.holism
+		
 		return m
 	
 	def create_changed(self):
 		m = self.create_initial()
 		
 		for field_name, value in self.new_values.items():
-			setattr(m, field_name, value)
+			if not hasattr(value, '__call__'):
+				setattr(m, field_name, value)
 		
 		return m
 	
@@ -114,7 +118,8 @@ class EnlightenedModelTestCase(TestCase):
 		m = self.create_changed()
 		
 		for field_name, value in self.old_values.items():
-			setattr(m, field_name, value)
+			if not hasattr(value, '__call__'):
+				setattr(m, field_name, value)
 		
 		return m
 	
@@ -122,9 +127,6 @@ class EnlightenedModelTestCase(TestCase):
 		m = self.create_changed()
 		
 		m.save()
-		
-		self.old_values['id'] = self.old_public_values['id'] = m.id
-		self.new_values['id'] = self.new_public_values['id'] = m.id
 		
 		return m
 	
@@ -186,12 +188,14 @@ class EnlightenedModelTestCase(TestCase):
 		m = self.create_changed()
 		old_values = self.old_values
 		del(old_values['id'])
+		del(old_values['holism'])
 		
 		self.assertEquals(m._changed_fields, old_values)
 	
 	def test_touched_mutable_field__mutable_fields(self):
 		m = self.create_initial()
 		m.enlightenment
+		m.holism.all()
 		mutable_fields = {'enlightenment': self.old_values['enlightenment']}
 		
 		self.assertEquals(m._mutable_fields, mutable_fields)
@@ -232,6 +236,7 @@ class EnlightenedModelTestCase(TestCase):
 		m = self.create_changed()
 		new_values = self.new_values
 		del(new_values['id'])
+		del(new_values['holism'])
 		
 		self.assertEquals(sorted(m.changed_fields), sorted(new_values.keys()))
 	

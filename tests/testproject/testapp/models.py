@@ -41,6 +41,7 @@ class EnlightenedModel(models.Model):
 	decimal = models.DecimalField(max_digits=3, decimal_places=2)
 	email = models.EmailField()
 	enlightenment = models.ForeignKey(Enlightenment)
+	holism = models.ManyToManyField(Enlightenment)
 #	file = models.FileField(upload_to='./')
 	file_path = models.FilePathField(path=os.path.join(__file__, '..', 'uploads'))
 	float = models.FloatField()
