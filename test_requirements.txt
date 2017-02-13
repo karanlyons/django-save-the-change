@@ -1,4 +1,4 @@
+codecov==2.0.5
 coverage==4.3.4
-coveralls==1.1
 pillow==4.0.0
 pytz==2016.10
