@@ -2,12 +2,12 @@
 Save The Change
 ###############
 
-.. image:: https://badge.fury.io/py/django-save-the-change.png
-	:target: http://badge.fury.io/py/django-save-the-change
-.. image:: https://travis-ci.org/karanlyons/django-save-the-change.png?branch=master
-	:target: https://travis-ci.org/karanlyons/django-save-the-change/
-.. image:: https://coveralls.io/repos/karanlyons/django-save-the-change/badge.png?branch=master
-	:target: https://coveralls.io/r/karanlyons/django-save-the-change
+.. image:: https://img.shields.io/pypi/v/django-save-the-change.svg
+	:target: https://pypi.python.org/pypi/django-save-the-change
+.. image:: https://travis-ci.org/karanlyons/django-save-the-change.svg?branch=master
+	:target: https://travis-ci.org/karanlyons/django-save-the-change
+.. image:: https://codecov.io/github/karanlyons/django-save-the-change/coverage.svg?branch=master
+	:target: https://codecov.io/github/karanlyons/django-save-the-change
 
 Save The Change takes this:
 
