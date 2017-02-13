@@ -27,6 +27,7 @@ def BaseChangeTracker(cls):
 		def __init__(self, *args, **kwargs):
 			self._changed_fields = {}
 			self._mutable_fields = {}
+			self._mutability_checked = set()
 			
 			original__init__(self, *args, **kwargs)
 		cls.__init__ = __init__
@@ -41,8 +42,9 @@ def BaseChangeTracker(cls):
 			else:
 				original_save(self, *args, **kwargs)
 			
-			self._mutable_fields = {}
 			self._changed_fields = {}
+			self._mutable_fields = {}
+			self._mutability_checked = set()
 		cls.save = save
 		
 		cls._meta._stc_injected = True

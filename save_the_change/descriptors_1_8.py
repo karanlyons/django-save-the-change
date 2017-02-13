@@ -20,11 +20,15 @@ class ChangeTrackingDescriptor(object):
 		else:
 			value = instance.__dict__.get(self.name, DoesNotExist)
 		
-		if (
-			self.name not in instance.__dict__['_changed_fields'] and
-			self.name not in instance.__dict__['_mutable_fields'] and is_mutable(value)
+		if not (
+			self.name in instance.__dict__['_mutability_checked'] or
+			self.name in instance.__dict__['_changed_fields'] or
+			self.name in instance.__dict__['_mutable_fields']
 		):
-			instance.__dict__['_mutable_fields'][self.name] = deepcopy(value)
+			if is_mutable(value):
+				instance.__dict__['_mutable_fields'][self.name] = deepcopy(value)
+			
+			instance.__dict__['_mutability_checked'].add(self.name)
 		
 		return value
 	
