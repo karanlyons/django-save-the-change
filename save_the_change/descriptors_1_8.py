@@ -8,16 +8,17 @@ from .util import DoesNotExist, is_mutable
 
 
 class ChangeTrackingDescriptor(object):
-	def __init__(self, name, field):
+	def __init__(self, name, field, django_descriptor=None):
 		self.name = name
 		self.field = field
+		self.django_descriptor = django_descriptor
 	
 	def __get__(self, instance=None, owner=None):
-		value = instance.__dict__.get(self.name, DoesNotExist)
+		if self.django_descriptor:
+			value = self.django_descriptor.__get__(instance, owner)
 		
-		if value is DoesNotExist and self.field.is_relation:
-			value_id = instance.__class__.__dict__[self.field.attname].__get__(instance, owner)
-			value = self.field.related_model.objects.get(pk=value_id)
+		else:
+			value = instance.__dict__.get(self.name, DoesNotExist)
 		
 		if (
 			self.name not in instance.__dict__['_changed_fields'] and
@@ -38,15 +39,15 @@ class ChangeTrackingDescriptor(object):
 				elif value != old_value:
 					instance.__dict__['_changed_fields'].setdefault(self.name, copy(old_value))
 		
-		instance.__dict__[self.name] = value
+		if self.django_descriptor and hasattr(self.django_descriptor, '__set__'):
+			self.django_descriptor.__set__(instance, value)
 		
-		if self.name != self.field.attname:
-			setattr(instance, self.field.attname, value.id)
+		instance.__dict__[self.name] = value
 
 
 def _inject_descriptors(cls):
 	for field in cls._meta.concrete_fields:
-		setattr(cls, field.attname, ChangeTrackingDescriptor(field.attname, field))
+		setattr(cls, field.attname, ChangeTrackingDescriptor(field.attname, field, cls.__dict__.get(field.attname, None)))
 		
 		if field.attname != field.name:
-			setattr(cls, field.name, ChangeTrackingDescriptor(field.name, field))
+			setattr(cls, field.name, ChangeTrackingDescriptor(field.name, field, cls.__dict__.get(field.name, None)))

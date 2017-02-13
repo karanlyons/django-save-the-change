@@ -43,10 +43,10 @@ class EnlightenedModelTestCase(TestCase):
 			'email': 'gautama@kapilavastu.org',
 			'enlightenment': self.knowledge,
 			'enlightenment_id': self.knowledge.id,
-#			'file': File(open(self.penny_front), 'penny_front_file.png'),
+			'file': File(open(self.penny_front, 'rbU'), 'penny_front_file.png'),
 			'file_path': 'uploads/penny_front_file.png',
 			'float': 1.61803,
-#			'image': ImageFile(open(self.penny_front), 'penny_front_image.png'),
+			'image': ImageFile(open(self.penny_front, 'rbU'), 'penny_front_image.png'),
 			'integer': 42,
 			'IP_address': '127.0.0.1',
 			'generic_IP': '::1',
@@ -71,10 +71,10 @@ class EnlightenedModelTestCase(TestCase):
 			'email': 'maitreya@unknown.org',
 			'enlightenment': self.wisdom,
 			'enlightenment_id': self.wisdom.id,
-#			'file': File(open(self.penny_back), 'penny_back_file.png'),
+			'file': File(open(self.penny_back, 'rbU'), 'penny_back_file.png'),
 			'file_path': 'uploads/penny_back_file.png',
 			'float': 3.14159,
-#			'image': ImageFile(open(self.penny_back), 'penny_back_image.png'),
+			'image': ImageFile(open(self.penny_back, 'rbU'), 'penny_back_image.png'),
 			'integer': 108,
 			'IP_address': '255.255.255.255',
 			'generic_IP': 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',
@@ -90,6 +90,12 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.old_public_values = {k: v for k, v in self.old_values.items() if not k.endswith('_id')}
 		self.new_public_values = {k: v for k, v in self.new_values.items() if not k.endswith('_id')}
+		
+		# When assigning a file initially to {File,Image}Field, Django replaces
+		# it with a FieldFile instance. We need to grab that instance for
+		# testing, which trips our mutability checks. This isn't at all a bug,
+		# but requires some extra boilerplate for equality tests.
+		self.always_in__mutable_fields = {'file': self.old_values['file'], 'image': self.old_values['image']}
 	
 	def create_initial(self):
 		self.tearDown()
@@ -103,6 +109,11 @@ class EnlightenedModelTestCase(TestCase):
 		self.old_values['holism'] = self.old_public_values['holism'] = m.holism
 		self.new_values['holism'] = self.new_public_values['holism'] = m.holism
 		
+		# The aformentioned _mutable_fields side effects happen here.
+		self.old_values['file'] = self.old_public_values['file'] = m.file
+		self.old_values['image'] = self.old_public_values['image'] = m.image
+		self.always_in__mutable_fields = {'file': self.old_values['file'], 'image': self.old_values['image']}
+		
 		return m
 	
 	def create_changed(self):
@@ -111,6 +122,9 @@ class EnlightenedModelTestCase(TestCase):
 		for field_name, value in self.new_values.items():
 			if not hasattr(value, '__call__'):
 				setattr(m, field_name, value)
+		
+		self.new_values['file'] = self.new_public_values['file'] = m.file
+		self.new_values['image'] = self.new_public_values['image'] = m.image
 		
 		return m
 	
@@ -189,6 +203,8 @@ class EnlightenedModelTestCase(TestCase):
 		old_values = self.old_values
 		del(old_values['id'])
 		del(old_values['holism'])
+		del(old_values['file'])
+		del(old_values['image'])
 		
 		self.assertEquals(m._changed_fields, old_values)
 	
@@ -197,6 +213,7 @@ class EnlightenedModelTestCase(TestCase):
 		m.enlightenment
 		m.holism.all()
 		mutable_fields = {'enlightenment': self.old_values['enlightenment']}
+		mutable_fields.update(self.always_in__mutable_fields)
 		
 		self.assertEquals(m._mutable_fields, mutable_fields)
 	
@@ -204,6 +221,7 @@ class EnlightenedModelTestCase(TestCase):
 		m = self.create_initial()
 		m.enlightenment.aspect = 'Holistic'
 		old_values = {'enlightenment': self.old_values['enlightenment']}
+		old_values.update(self.always_in__mutable_fields)
 		
 		self.assertEquals(m._mutable_fields, old_values)
 	
@@ -212,6 +230,7 @@ class EnlightenedModelTestCase(TestCase):
 		m.enlightenment
 		m.enlightenment = self.new_values['enlightenment']
 		mutable_fields = {'enlightenment': self.old_values['enlightenment']}
+		mutable_fields.update(self.always_in__mutable_fields)
 		
 		self.assertEquals(m._mutable_fields, mutable_fields)
 	
@@ -219,8 +238,9 @@ class EnlightenedModelTestCase(TestCase):
 		m = self.create_initial()
 		m.comma_seperated_integer = (1, [0], 1)
 		m._changed_fields = {}
-		mutable_fields = {'comma_seperated_integer': (1, [0], 1)}
 		m.comma_seperated_integer
+		mutable_fields = {'comma_seperated_integer': (1, [0], 1)}
+		mutable_fields.update(self.always_in__mutable_fields)
 		
 		self.assertEquals(m._mutable_fields, mutable_fields)
 	
@@ -363,27 +383,22 @@ class EnlightenedModelTestCase(TestCase):
 		together = {'chaos', 'fire', 'brimstone'}
 		self.assertEquals(Disorder._meta.update_together, {field: together for field in together})
 	
+	def test_altered_file_field(self):
+		m = self.create_initial()
+		
+		m.file.delete(save=False)
+		m.file.save('penny_back_file.png', File(open(self.penny_back, 'rbU')), save=False)
+		
+		self.assertEquals(m.changed_fields, {'file'})
+		
+		m.file.save('penny_front_file.png', File(open(self.penny_front, 'rbU')), save=False)
+		
+		self.assertEquals(m.changed_fields, set())
+	
 	"""
 	Regression Tests
 	
 	"""
-	
-	def test_assign_fkey_after_init_before_save(self):
-		"""
-		If a required ForeignKey is assigned after the model is initialized
-		but before it is saved, a field.rel.to.DoesNotExist exception should
-		not be raised.
-		
-		"""
-		
-		del(self.old_values['enlightenment'])
-		m = EnlightenedModel(**self.old_public_values)
-		
-		try:
-			m.enlightenment = self.knowledge
-		
-		except Enlightenment.DoesNotExist:
-			self.fail('Assigning a foreign key resulted in a DoesNotExist.')
 	
 	def tearDown(self):
 		for file_name in os.listdir(self.uploads):
