@@ -395,6 +395,26 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.assertEquals(m.changed_fields, set())
 	
+	def test_refresh_from_db(self):
+		m = self.create_changed()
+		m.refresh_from_db()
+		
+		self.assertEquals(m._changed_fields, {})
+		self.assertEquals(m._mutable_fields, {})
+		self.assertEquals(m._mutability_checked, set())
+	
+	def test_refresh_single_field_from_db(self):
+		m = self.create_initial()
+		m.small_integer = self.new_values['small_integer']
+		m.big_integer = self.new_values['big_integer']
+		m.refresh_from_db(fields=('small_integer',))
+		
+		self.assertEquals(m._changed_fields, {'big_integer': self.old_values['big_integer']})
+		self.assertEquals(m._mutable_fields, self.always_in__mutable_fields)
+		
+		# A side effect of create_initial is that 'id' will end up in _mutability_checked.
+		self.assertEquals(m._mutability_checked, {'id'} | set(self.always_in__mutable_fields.keys()))
+	
 	"""
 	Regression Tests
 	

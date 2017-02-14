@@ -16,6 +16,7 @@ def BaseChangeTracker(cls):
 	if not hasattr(cls._meta, '_stc_injected'):
 		original__init__ = cls.__init__
 		original_save = cls.save
+		original_refresh_from_db = cls.refresh_from_db
 		
 		_inject_descriptors(cls)
 		
@@ -41,6 +42,21 @@ def BaseChangeTracker(cls):
 			self._mutable_fields = {}
 			self._mutability_checked = set()
 		cls.save = save
+		
+		def refresh_from_db(self, using=None, fields=None):
+			original_refresh_from_db(self, using, fields)
+			
+			if fields:
+				for field in fields:
+					self._changed_fields.pop(field, None)
+					self._mutable_fields.pop(field, None)
+					self._mutability_checked.discard(field)
+			
+			else:
+				self._changed_fields = {}
+				self._mutable_fields = {}
+				self._mutability_checked = set()
+		cls.refresh_from_db = refresh_from_db
 		
 		cls._meta._stc_injected = True
 		cls._meta._stc_save_hooks = []
