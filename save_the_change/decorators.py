@@ -13,6 +13,24 @@ from .descriptors import _inject_descriptors
 
 
 def BaseChangeTracker(cls):
+	"""
+	Wraps model attributes in descriptors to track their changes.
+	
+	Hooks into :meth:`~django.db.models.Model.save` and
+	:meth:`~django.db.models.Model.refresh_from_db`, and adds some new,
+	private attributes to the model and its :attr:`_meta`:
+	
+	:attr:`_mutable_fields`: A :class:`dict` storing a
+		copy of potentially mutable values on first access.
+	:attr:`_changed_fields`: A :class:`dict` storing a
+		copy of immutable fields' original values when they're changed.
+	:attr:`_meta._stc_injected`: :const:`True` if we've
+		already wrapped fields on this model.
+	:attr:`_meta._stc_save_hooks`: A :class:`list` of
+		hooks to run during :meth:`~django.db.models.Model.save`.
+	
+	"""
+	
 	if not hasattr(cls._meta, '_stc_injected'):
 		original__init__ = cls.__init__
 		original_save = cls.save
@@ -65,6 +83,21 @@ def BaseChangeTracker(cls):
 
 
 def _save_the_change_save_hook(instance, *args, **kwargs):
+	"""
+	Sets ``update_fields`` on :meth:`~django.db.models.Model.save` to only \
+	what's changed.
+	
+	``update_fields`` is only set if it doesn't already exist and when doing so
+	is safe. This means its not set if the instance is new and yet to be saved
+	to the database, if the instance is being saved with a new primary key, or
+	if :meth:`~django.db.models.Model.save` has been called
+	with ``force_insert``.
+	
+	:return: (continue_saving, args, kwargs)
+	:rtype: :class:`tuple`
+	
+	"""
+	
 	if (
 		not instance._state.adding and
 		hasattr(instance, '_changed_fields') and
@@ -84,9 +117,16 @@ def _save_the_change_save_hook(instance, *args, **kwargs):
 
 
 def SaveTheChange(cls):
+	"""
+	Decorator that wraps models with a save hook to save only what's changed.
+	
+	"""
+	
 	if not hasattr(cls._meta, '_stc_injected') or _save_the_change_save_hook not in cls._meta._stc_save_hooks:
 		cls = BaseChangeTracker(cls)
 		
+		# We need to ensure that if SaveTheChange and UpdateTogether are both
+		# used, that UpdateTogether's save hook will always run second.
 		if _update_together_save_hook in cls._meta._stc_save_hooks:
 			cls._meta._stc_save_hooks = [_save_the_change_save_hook, _update_together_save_hook]
 		
@@ -97,6 +137,22 @@ def SaveTheChange(cls):
 
 
 def TrackChanges(cls):
+	"""
+	Decorator that adds some methods and properties to models for working with \
+	changed fields.
+	
+	:attr:`~django.db.models.Model.has_changed`: :const:`True` if any fields on
+		the model have changed from its last known database representation.
+	:attr:`~django.db.models.Model.changed_fields`: A :class:`set` of the names
+		of all changed fields on the model.
+	:attr:`~django.db.models.Model.old_values`: The model's fields in their
+		last known database representation as a read-only mapping
+		(:class:`OldValues`).
+	:meth:`~django.db.models.Model._meta.revert_fields`: Reverts the given
+		fields back to their last known database representation.
+	
+	"""
+	
 	cls = BaseChangeTracker(cls)
 	
 	def has_changed(self):
@@ -121,6 +177,15 @@ def TrackChanges(cls):
 	cls.old_values = property(old_values)
 	
 	def revert_fields(self, names=None):
+		"""
+		Sets ``update_fields`` on :meth:`~django.db.models.Model.save` to only \
+		what's changed.
+		
+		:param names: The name of the field to revert or an iterable of
+			multiple names.
+		
+		"""
+		
 		if names is None:
 			names = list(self._mutable_fields) + list(self._changed_fields)
 		
@@ -137,6 +202,16 @@ def TrackChanges(cls):
 
 
 def _update_together_save_hook(instance, *args, **kwargs):
+	"""
+	Sets ``update_fields`` on :meth:`~django.db.models.Model.save` to include \
+	fields that have been marked as needing to be updated together with any \
+	fields already in ``update_fields``.
+	
+	:return: (continue_saving, args, kwargs)
+	:rtype: :class:`tuple`
+	
+	"""
+	
 	if 'update_fields' in kwargs:
 		new_update_fields = set(kwargs['update_fields'])
 		
@@ -149,6 +224,23 @@ def _update_together_save_hook(instance, *args, **kwargs):
 
 
 def UpdateTogether(*groups):
+	"""
+	Decorator for specifying groups of fields to be updated together.
+	
+	Usage:
+		>>> from django.db import models
+		>>> from save_the_change.decorators import SaveTheChange, UpdateTogether
+		>>> 
+		>>> @SaveTheChange
+		>>> @UpdateTogether(
+		... 	('height_feet', 'height_inches'),
+		... 	('weight_pounds', 'weight_kilos')
+		... )
+		>>> class Knight(models.model):
+		>>> 	...
+	
+	"""
+	
 	def UpdateTogether(cls, groups=groups):
 		cls = BaseChangeTracker(cls)
 		
@@ -156,6 +248,8 @@ def UpdateTogether(*groups):
 		cls._meta.update_together = defaultdict(set)
 		field_names = {field.name for field in cls._meta.fields if field.concrete}
 		
+		# Fields may be referenced in multiple groups, so we'll walk the
+		# graph when the model's class is built.
 		neighbors = defaultdict(set)
 		seen_nodes = set()
 		

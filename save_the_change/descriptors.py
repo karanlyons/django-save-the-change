@@ -76,7 +76,7 @@ class ChangeTrackingDescriptor(object):
 					# 
 					# It's an edge case, to be sure, but one we can't see coming
 					# without likely worse solutions (such as checking *all*
-					# attributes for immmutability on model
+					# attributes for immutability on model
 					# instantiation/refresh).
 					instance.__dict__['_changed_fields'].setdefault(self.name, deepcopy(old_value))
 		

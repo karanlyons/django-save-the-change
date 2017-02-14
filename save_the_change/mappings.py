@@ -6,6 +6,14 @@ from collections import Mapping
 
 
 class OldValues(Mapping):
+	"""
+	A read-only :class:`~collections.Mapping` of the original values for \
+	its model.
+	
+	Attributes can be accessed with either dot or bracket notation.
+	
+	"""
+	
 	def __init__(self, instance):
 		self.instance = instance
 	

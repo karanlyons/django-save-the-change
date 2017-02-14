@@ -109,7 +109,7 @@ class EnlightenedModelTestCase(TestCase):
 		self.old_values['holism'] = self.old_public_values['holism'] = m.holism
 		self.new_values['holism'] = self.new_public_values['holism'] = m.holism
 		
-		# The aformentioned _mutable_fields side effects happen here.
+		# The aforementioned _mutable_fields side effects happen here.
 		self.old_values['file'] = self.old_public_values['file'] = m.file
 		self.old_values['image'] = self.old_public_values['image'] = m.image
 		self.always_in__mutable_fields = {'file': self.old_values['file'], 'image': self.old_values['image']}

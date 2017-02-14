@@ -63,14 +63,16 @@ Install Save The Change just like everything else:
 Usage
 =====
 
-Just add :class:`~save_the_change.mixins.SaveTheChange` to your model:
+Just add the :class:`~save_the_change.decorators.SaveTheChange` decorator to
+your model:
 
 .. code-block:: python
 
 	from django.db import models
-	from save_the_change.mixins import SaveTheChange
+	from save_the_change.decorators import SaveTheChange
 	
-	class Knight(SaveTheChange, models.model):
+	@SaveTheChange
+	class Knight(models.model):
 		...
 
 
@@ -81,51 +83,81 @@ care of you.
 How It Works
 ============
 
-Save The Change overloads ``__setattr__`` and keeps track of what fields have
-changed from their stored value in your database. When you
-call :meth:`~django.db.models.Model.save`, Save The Change passes those
-changed fields through Django's ``update_fields`` ``kwarg``, and Django does the
-rest, sending only those fields back to the database.
+Save The Change encapsulates the fields of your model with its own descriptors
+that track their values for any changes. When you call
+:meth:`~django.db.models.Model.save`, Save The Change passes the names of
+your changed fields through Django's ``update_fields`` argument, and Django does
+the rest, sending only those fields back to the database.
 
 
 Caveats
 =======
 
-Save The Change can't help you with :class:`~django.db.models.ManyToManyField`\s
-nor reverse relations, as those aren't handled
-through :meth:`~django.db.models.Model.save`. But everything else'll work.
+Save The Change can't help you with
+:class:`~django.db.models.ManyToManyField`\s nor reverse relations, as
+those aren't handled through :meth:`~django.db.models.Model.save`. But
+everything else should work.
 
 
 Goodies
 =======
 
-Save The Change also comes with a second mixin,
-:class:`~save_the_change.mixins.TrackChanges`. Adding
-:class:`~save_the_change.mixins.TrackChanges` to your model will expose a few
-new properties and methods for tracking and manually reverting changes to your
-model before you save it.
+Save The Change also comes with two additional decorators,
+:class:`~save_the_change.decorators.TrackChanges` and 
+:class:`~save_the_change.decorators.UpdateTogether`.
 
-You can also use :class:`~save_the_change.mixins.UpdateTogetherModel` in place of
-:class:`~django.db.models.Model` to add the new field ``update_together`` to your
-model's ``Meta``, which allows you to specify that certain fields are dependent on
-the values of other fields in your model.
+:class:`~save_the_change.decorators.TrackChanges` provides some additional
+properties and methods to keep interact with changes made to your model,
+including comparing the old and new values and reverting any changes to your
+model before you save it. It can be used independently
+of :class:`~save_the_change.decorators.SaveTheChange`.
+
+:class:`~save_the_change.decorators.UpdateTogether` is an additional decorator
+which allows you to specify groups of fields that are dependent on each other in
+your model, ensuring that if any of them change they'll all be saved together.
+For example:
+
+.. code-block:: python
+
+	from django.db import models
+	from save_the_change.decorators import SaveTheChange, UpdateTogether
+	
+	@SaveTheChange
+	@UpdateTogether(('height_feet', 'height_inches'))
+	class Knight(models.model):
+		...
+
+Now if you ever make a change to either part of our Knight's height, *both*
+the feet and the inches will be sent to the database together, so that they
+can't accidentally fall out of sync.
 
 
 Developer Interface
 ===================
 
-.. automodule:: save_the_change.mixins
-	:members: SaveTheChange, TrackChanges
-	:undoc-members:
+.. autofunction:: save_the_change.decorators.SaveTheChange
 
-.. autoclass:: save_the_change.mixins.UpdateTogetherModel
+.. autofunction:: save_the_change.decorators.UpdateTogether
 
-.. autoclass:: save_the_change.mixins.DoesNotExist
+.. autofunction:: save_the_change.decorators.TrackChanges
 
-.. autoclass:: save_the_change.mixins.BaseChangeTracker
-	:members: __setattr__, save
+.. autoclass:: save_the_change.mappings.OldValues
 
-.. autoclass:: save_the_change.mixins.UpdateTogetherMeta
+
+Internals
+=========
+
+.. autofunction:: save_the_change.decorators.BaseChangeTracker
+
+.. autofunction:: save_the_change.decorators._save_the_change_save_hook
+
+.. autofunction:: save_the_change.decorators._update_together_save_hook
+
+.. autofunction:: save_the_change.util.is_mutable
+
+.. autoclass:: save_the_change.descriptors.ChangeTrackingDescriptor
+
+.. autofunction:: save_the_change.descriptors._inject_descriptors
 
 
 .. include:: ../HISTORY.rst
