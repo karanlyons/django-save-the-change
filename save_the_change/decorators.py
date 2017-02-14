@@ -4,17 +4,12 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 
 from collections import defaultdict
 
-from django import VERSION
 from django.utils import six
 
 from .util import DoesNotExist
 from .mappings import OldValues
 
-if VERSION[:2] < (1, 10):
-	from .descriptors_1_8 import _inject_descriptors
-
-else:
-	from .descriptors_1_10 import _inject_descriptors
+from .descriptors import _inject_descriptors
 
 
 def BaseChangeTracker(cls):
