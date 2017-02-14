@@ -104,15 +104,12 @@ def TrackChanges(cls):
 	
 	cls.old_values = property(old_values)
 	
-	def revert_field(self, name):
-		if name in self.changed_fields:
-			setattr(self, name, self.old_values[name])
-	
-	cls.revert_field = revert_field
-	
 	def revert_fields(self, names=None):
 		if names is None:
 			names = list(self._mutable_fields) + list(self._changed_fields)
+		
+		if isinstance(names, (six.text_type, six.binary_type) + six.string_types):
+			names = [names]
 		
 		for name in names:
 			if name in self.changed_fields:

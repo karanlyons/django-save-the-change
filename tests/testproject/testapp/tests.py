@@ -283,13 +283,13 @@ class EnlightenedModelTestCase(TestCase):
 	
 	def test_changed_revert_nonexistent_field(self):
 		m = self.create_changed()
-		m.revert_field('not_a_field')
+		m.revert_fields('not_a_field')
 		
 		self.assertEquals(self.get_model_attrs(m), self.new_values)
 	
 	def test_changed_reverts_all(self):
 		m = self.create_changed()
-		m.revert_field('enlightenment')
+		m.revert_fields('enlightenment')
 		m.enlightenment.aspect = 'Holistic'
 		m.revert_fields()
 		
