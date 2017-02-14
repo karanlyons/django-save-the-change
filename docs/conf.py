@@ -50,8 +50,4 @@ if os.environ.get('READTHEDOCS', None) == 'True':
 	html_theme = 'default'
 
 else:
-	html_theme = 'flask'
-	html_theme_options = {
-		'index_logo': '',
-		'index_logo_height': '0px',
-	}
+	html_theme = 'sphinx_rtd_theme'
