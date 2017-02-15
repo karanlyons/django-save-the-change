@@ -23,6 +23,9 @@ class ChangeTrackingDescriptor(object):
 		self.django_descriptor = django_descriptor
 	
 	def __get__(self, instance=None, owner=None):
+		if instance is None:
+			return self.django_descriptor
+		
 		if self.django_descriptor:
 			value = self.django_descriptor.__get__(instance, owner)
 		

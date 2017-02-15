@@ -9,6 +9,8 @@ from django.db import models
 from save_the_change.decorators import SaveTheChange, TrackChanges, UpdateTogether
 
 
+@TrackChanges
+@SaveTheChange
 class Enlightenment(models.Model):
 	"""
 	A model to test ForeignKeys.
@@ -53,7 +55,7 @@ class EnlightenedModel(models.Model):
 	date_time = models.DateTimeField()
 	decimal = models.DecimalField(max_digits=3, decimal_places=2)
 	email = models.EmailField()
-	enlightenment = models.ForeignKey(Enlightenment)
+	enlightenment = models.ForeignKey(Enlightenment, related_name='enlightened_models')
 	holism = models.ManyToManyField(Enlightenment)
 	file = models.FileField(upload_to='./')
 	file_path = models.FilePathField(path=os.path.join(__file__, '..', 'uploads'))

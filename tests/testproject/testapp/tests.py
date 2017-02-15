@@ -8,8 +8,10 @@ import pytz
 import warnings
 from decimal import Decimal
 
+import django
 from django.core.files import File
 from django.core.files.images import ImageFile
+from django.db import models
 from django.test import TestCase
 
 from testproject.testapp.models import Enlightenment, EnlightenedModel, Disorder
@@ -443,10 +445,20 @@ class EnlightenedModelTestCase(TestCase):
 				"save_the_change.mixins.UpdateTogetherModel: mixins.UpdateTogetherModel is no longer supported, instead use the decorator decorators.UpdateTogether."
 			)
 	
-	"""
-	Regression Tests
-	
-	"""
+	def test_descriptor__get__in_class(self):
+		if django.VERSION < (1, 10):
+			self.assertEquals(EnlightenedModel.big_integer.__class__, type(None))
+		
+		else:
+			self.assertEquals(EnlightenedModel.big_integer.__class__, models.query_utils.DeferredAttribute)
+		
+		if django.VERSION < (1, 9):
+			self.assertEquals(EnlightenedModel.holism.__class__, models.fields.related.ReverseManyRelatedObjectsDescriptor)
+			self.assertEquals(EnlightenedModel.enlightenment.__class__, django.db.models.fields.related.ReverseSingleRelatedObjectDescriptor)
+		
+		else:
+			self.assertEquals(EnlightenedModel.holism.__class__, models.fields.related_descriptors.ManyToManyDescriptor)
+			self.assertEquals(EnlightenedModel.enlightenment.__class__, models.fields.related_descriptors.ForwardManyToOneDescriptor)
 	
 	def tearDown(self):
 		for file_name in os.listdir(self.uploads):
