@@ -2,9 +2,10 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
-import os
 import datetime
+import os
 import pytz
+import warnings
 from decimal import Decimal
 
 from django.core.files import File
@@ -14,6 +15,8 @@ from django.test import TestCase
 from testproject.testapp.models import Enlightenment, EnlightenedModel, Disorder
 
 from save_the_change.decorators import _save_the_change_save_hook, _update_together_save_hook
+from save_the_change.mixins import SaveTheChange, TrackChanges, UpdateTogetherModel
+
 
 ATTR_MISSING = object()
 
@@ -414,6 +417,31 @@ class EnlightenedModelTestCase(TestCase):
 		
 		# A side effect of create_initial is that 'id' will end up in _mutability_checked.
 		self.assertEquals(m._mutability_checked, {'id'} | set(self.always_in__mutable_fields.keys()))
+	
+	def test_mixins_warnings(self):
+		with warnings.catch_warnings(record=True) as w:
+			warnings.simplefilter('always')
+			
+			SaveTheChange()
+			TrackChanges()
+			UpdateTogetherModel()
+			
+			self.assertEquals(len(w), 3)
+			self.assertEquals(w[0].category, RuntimeWarning)
+			self.assertEquals(
+				w[0].message.message,
+				"save_the_change.mixins.SaveTheChange: mixins.SaveTheChange is no longer supported, instead use the decorator decorators.SaveTheChange."
+			)
+			self.assertEquals(w[1].category, RuntimeWarning)
+			self.assertEquals(
+				w[1].message.message,
+				"save_the_change.mixins.TrackChanges: mixins.TrackChanges is no longer supported, instead use the decorator decorators.TrackChanges."
+			)
+			self.assertEquals(w[2].category, RuntimeWarning)
+			self.assertEquals(
+				w[2].message.message,
+				"save_the_change.mixins.UpdateTogetherModel: mixins.UpdateTogetherModel is no longer supported, instead use the decorator decorators.UpdateTogether."
+			)
 	
 	"""
 	Regression Tests
