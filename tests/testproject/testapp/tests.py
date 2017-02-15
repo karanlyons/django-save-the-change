@@ -429,17 +429,17 @@ class EnlightenedModelTestCase(TestCase):
 			self.assertEquals(len(w), 3)
 			self.assertEquals(w[0].category, RuntimeWarning)
 			self.assertEquals(
-				w[0].message.message,
+				str(w[0].message),
 				"save_the_change.mixins.SaveTheChange: mixins.SaveTheChange is no longer supported, instead use the decorator decorators.SaveTheChange."
 			)
 			self.assertEquals(w[1].category, RuntimeWarning)
 			self.assertEquals(
-				w[1].message.message,
+				str(w[1].message),
 				"save_the_change.mixins.TrackChanges: mixins.TrackChanges is no longer supported, instead use the decorator decorators.TrackChanges."
 			)
 			self.assertEquals(w[2].category, RuntimeWarning)
 			self.assertEquals(
-				w[2].message.message,
+				str(w[2].message),
 				"save_the_change.mixins.UpdateTogetherModel: mixins.UpdateTogetherModel is no longer supported, instead use the decorator decorators.UpdateTogether."
 			)
 	
