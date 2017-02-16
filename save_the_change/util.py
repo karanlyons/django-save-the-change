@@ -35,12 +35,13 @@ def is_mutable(obj):
 	
 	:param obj: object to check.
 	
-	We check that the object is itself a known immutable type, and then
-	attempt to recursively check any objects within it. Strings are
-	special cased to prevent us getting stuck in an infinite loop.
+	We check that the object is itself a known immutable type, and then attempt
+	to recursively check any objects within it. Strings are special cased to
+	prevent us getting stuck in an infinite loop.
 	
-	:return: :const:`True` if the object is likely mutable,
-		:const:`False` if it definitely is not.
+	:return:
+		:const:`True` if the object is likely mutable, :const:`False` if it
+		definitely is not.
 	:rtype: :obj:`bool`
 	
 	"""

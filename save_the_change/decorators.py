@@ -19,15 +19,15 @@ class STCMixin(object):
 	"""
 	Hooks into :meth:`~django.db.models.Model.__init__`,
 	:meth:`~django.db.models.Model.save`, and
-	:meth:`~django.db.models.Model.refresh_from_db`, and adds some new,
-	private attributes to the model:
+	:meth:`~django.db.models.Model.refresh_from_db`, and adds some new, private
+	attributes to the model:
 	
 	:attr:`_mutable_fields`
 		A :class:`dict` storing a copy of potentially mutable values on
 		first access.
 	:attr:`_changed_fields`
-		A :class:`dict` storing a copy of immutable fields' original
-		values when they're changed.
+		A :class:`dict` storing a copy of immutable fields' original values when
+		they're changed.
 	
 	"""
 	
@@ -75,9 +75,10 @@ def _inject_stc(cls):
 	{create,load}/change/save lifecycle, and adds some attributes to the
 	model's :attr:`_meta`:
 	 
-	:attr:`_stc_injected`: :const:`True` if we've already wrapped fields
-		on this model.
-	:attr:`_stc_save_hooks`: A :class:`list` of hooks to run
+	:attr:`_stc_injected`
+		:const:`True` if we've already wrapped fields on this model.
+	:attr:`_stc_save_hooks`
+		A :class:`list` of hooks to run
 		during :meth:`~django.db.models.Model.save`.
 	
 	"""
@@ -150,15 +151,17 @@ def TrackChanges(cls):
 	Decorator that adds some methods and properties to models for working with \
 	changed fields.
 	
-	:attr:`~django.db.models.Model.has_changed`: :const:`True` if any fields on
-		the model have changed from its last known database representation.
-	:attr:`~django.db.models.Model.changed_fields`: A :class:`set` of the names
-		of all changed fields on the model.
-	:attr:`~django.db.models.Model.old_values`: The model's fields in their
-		last known database representation as a read-only mapping
-		(:class:`OldValues`).
-	:meth:`~django.db.models.Model._meta.revert_fields`: Reverts the given
-		fields back to their last known database representation.
+	:attr:`~django.db.models.Model.has_changed`
+		:const:`True` if any fields on the model have changed from its last
+		known database representation.
+	:attr:`~django.db.models.Model.changed_fields`
+		A :class:`set` of the names of all changed fields on the model.
+	:attr:`~django.db.models.Model.old_values`
+		The model's fields in their last known database representation as a
+		read-only mapping (:class:`~save_the_change.mappings.OldValues`).
+	:meth:`~django.db.models.Model._meta.revert_fields`
+		Reverts the given fields back to their last known
+		database representation.
 	
 	"""
 	
@@ -213,7 +216,7 @@ def TrackChanges(cls):
 def _update_together_save_hook(instance, *args, **kwargs):
 	"""
 	Sets ``update_fields`` on :meth:`~django.db.models.Model.save` to include \
-	fields that have been marked as needing to be updated together with any \
+	any fields that have been marked as needing to be updated together with \
 	fields already in ``update_fields``.
 	
 	:return: (continue_saving, args, kwargs)
@@ -258,7 +261,10 @@ def UpdateTogether(*groups):
 		field_names = {field.name for field in cls._meta.fields if field.concrete}
 		
 		# Fields may be referenced in multiple groups, so we'll walk the
-		# graph when the model's class is built.
+		# graph when the model's class is built. If this decorator is used
+		# multiple times things will still work, but we'll end up doing this
+		# walk multiple times as well. It's only at startup, though, so not
+		# a big deal.
 		neighbors = defaultdict(set)
 		seen_nodes = set()
 		

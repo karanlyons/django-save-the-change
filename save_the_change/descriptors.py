@@ -11,10 +11,9 @@ class ChangeTrackingDescriptor(object):
 	"""
 	Descriptor that wraps model attributes to detect changes.
 	
-	Not all fields in older versions of Django are represented by
-	descriptors themselves, so we handle both getting/setting bare
-	attributes on the model and calling out to descriptors if
-	they exist.
+	Not all fields in older versions of Django are represented by descriptors
+	themselves, so we handle both getting/setting bare attributes on the model
+	and calling out to descriptors if they exist.
 	
 	"""
 	
@@ -32,11 +31,10 @@ class ChangeTrackingDescriptor(object):
 		else:
 			value = instance.__dict__.get(self.name, DoesNotExist)
 		
-		# We'll never have to check the value's mutability more than
-		# once, and then only if it's ever accessed. If it's not mutable
-		# the only way it'll change (normally) is through a call to our
-		# __set__, at which point the original value will end up in
-		# _changed_fields.
+		# We'll never have to check the value's mutability more than once, and
+		# then only if it's ever accessed. If it's not mutable the only way
+		# it'll change (normally) is through a call to our __set__, at which
+		# point the original value will end up in _changed_fields.
 		if not (
 			self.name in instance.__dict__['_mutability_checked'] or
 			self.name in instance.__dict__['_changed_fields'] or

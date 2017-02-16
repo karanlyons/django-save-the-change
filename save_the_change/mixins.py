@@ -8,9 +8,9 @@ from django.db import models
 
 
 """
-These are just stubs to prevent migrations from failing after upgrading
-from STC v1 to v2, and also to warn developers who may blindly upgrade
-about the changes to the API.
+These are just stubs to prevent migrations from failing after upgrading from
+STC v1 to v2, and also to warn developers who may blindly upgrade about the
+changes to the API.
 
 """
 
