@@ -16,14 +16,16 @@ Developer Interface
 Internals
 =========
 
-.. autofunction:: save_the_change.decorators.BaseChangeTracker
+.. autoclass:: save_the_change.decorators.STCMixin
+
+.. autofunction:: save_the_change.decorators._inject_stc
 
 .. autofunction:: save_the_change.decorators._save_the_change_save_hook
 
 .. autofunction:: save_the_change.decorators._update_together_save_hook
 
-.. autofunction:: save_the_change.util.is_mutable
-
 .. autoclass:: save_the_change.descriptors.ChangeTrackingDescriptor
 
 .. autofunction:: save_the_change.descriptors._inject_descriptors
+
+.. autofunction:: save_the_change.util.is_mutable

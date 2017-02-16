@@ -72,3 +72,24 @@ class EnlightenedModel(models.Model):
 	text = models.TextField()
 	time = models.TimeField()
 	URL = models.URLField()
+	
+	def __init__(self, *args, **kwargs):
+		self.init_started = True
+		
+		super(EnlightenedModel, self).__init__(*args, **kwargs)
+		
+		self.init_ended = True
+	
+	def refresh_from_db(self, using=None, fields=None):
+		self.refresh_from_db_started = True
+		
+		super(EnlightenedModel, self).refresh_from_db(using, fields)
+		
+		self.refresh_from_db_ended = True
+	
+	def save(self, *args, **kwargs):
+		self.save_started = True
+		
+		super(EnlightenedModel, self).save(*args, **kwargs)
+		
+		self.save_ended = True

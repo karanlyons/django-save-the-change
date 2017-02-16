@@ -12,74 +12,83 @@ from .mappings import OldValues
 from .descriptors import _inject_descriptors
 
 
-def BaseChangeTracker(cls):
+__all__ = ('SaveTheChange', 'UpdateTogether', 'TrackChanges')
+
+
+class STCMixin(object):
+	"""
+	Hooks into :meth:`~django.db.models.Model.__init__`,
+	:meth:`~django.db.models.Model.save`, and
+	:meth:`~django.db.models.Model.refresh_from_db`, and adds some new,
+	private attributes to the model:
+	
+	:attr:`_mutable_fields`
+		A :class:`dict` storing a copy of potentially mutable values on
+		first access.
+	:attr:`_changed_fields`
+		A :class:`dict` storing a copy of immutable fields' original
+		values when they're changed.
+	
+	"""
+	
+	def __init__(self, *args, **kwargs):
+		self._changed_fields = {}
+		self._mutable_fields = {}
+		self._mutability_checked = set()
+		
+		super(STCMixin, self).__init__(*args, **kwargs)
+		
+	def save(self, *args, **kwargs):
+		for save_hook in self._meta._stc_save_hooks:
+			continue_saving, args, kwargs = save_hook(self, *args, **kwargs)
+			
+			if not continue_saving:
+				break
+		
+		else:
+			super(STCMixin, self).save(*args, **kwargs)
+		
+		self._changed_fields = {}
+		self._mutable_fields = {}
+		self._mutability_checked = set()
+	
+	def refresh_from_db(self, using=None, fields=None):
+		super(STCMixin, self).refresh_from_db(using, fields)
+		
+		if fields:
+			for field in fields:
+				self._changed_fields.pop(field, None)
+				self._mutable_fields.pop(field, None)
+				self._mutability_checked.discard(field)
+		
+		else:
+			self._changed_fields = {}
+			self._mutable_fields = {}
+			self._mutability_checked = set()
+
+
+def _inject_stc(cls):
 	"""
 	Wraps model attributes in descriptors to track their changes.
 	
-	Hooks into :meth:`~django.db.models.Model.save` and
-	:meth:`~django.db.models.Model.refresh_from_db`, and adds some new,
-	private attributes to the model and its :attr:`_meta`:
-	
-	:attr:`_mutable_fields`: A :class:`dict` storing a
-		copy of potentially mutable values on first access.
-	:attr:`_changed_fields`: A :class:`dict` storing a
-		copy of immutable fields' original values when they're changed.
-	:attr:`_meta._stc_injected`: :const:`True` if we've
-		already wrapped fields on this model.
-	:attr:`_meta._stc_save_hooks`: A :class:`list` of
-		hooks to run during :meth:`~django.db.models.Model.save`.
+	Injects a mixin into the model's __bases__ as well to handle the
+	{create,load}/change/save lifecycle, and adds some attributes to the
+	model's :attr:`_meta`:
+	 
+	:attr:`_stc_injected`: :const:`True` if we've already wrapped fields
+		on this model.
+	:attr:`_stc_save_hooks`: A :class:`list` of hooks to run
+		during :meth:`~django.db.models.Model.save`.
 	
 	"""
 	
 	if not hasattr(cls._meta, '_stc_injected'):
-		original__init__ = cls.__init__
-		original_save = cls.save
-		original_refresh_from_db = cls.refresh_from_db
-		
 		_inject_descriptors(cls)
 		
-		def __init__(self, *args, **kwargs):
-			self._changed_fields = {}
-			self._mutable_fields = {}
-			self._mutability_checked = set()
-			
-			original__init__(self, *args, **kwargs)
-		cls.__init__ = __init__
-		
-		def save(self, *args, **kwargs):
-			for save_hook in self._meta._stc_save_hooks:
-				continue_saving, args, kwargs = save_hook(self, *args, **kwargs)
-				
-				if not continue_saving:
-					break
-			
-			else:
-				original_save(self, *args, **kwargs)
-			
-			self._changed_fields = {}
-			self._mutable_fields = {}
-			self._mutability_checked = set()
-		cls.save = save
-		
-		def refresh_from_db(self, using=None, fields=None):
-			original_refresh_from_db(self, using, fields)
-			
-			if fields:
-				for field in fields:
-					self._changed_fields.pop(field, None)
-					self._mutable_fields.pop(field, None)
-					self._mutability_checked.discard(field)
-			
-			else:
-				self._changed_fields = {}
-				self._mutable_fields = {}
-				self._mutability_checked = set()
-		cls.refresh_from_db = refresh_from_db
+		cls.__bases__ = (STCMixin,) + cls.__bases__
 		
 		cls._meta._stc_injected = True
 		cls._meta._stc_save_hooks = []
-	
-	return cls
 
 
 def _save_the_change_save_hook(instance, *args, **kwargs):
@@ -123,7 +132,7 @@ def SaveTheChange(cls):
 	"""
 	
 	if not hasattr(cls._meta, '_stc_injected') or _save_the_change_save_hook not in cls._meta._stc_save_hooks:
-		cls = BaseChangeTracker(cls)
+		_inject_stc(cls)
 		
 		# We need to ensure that if SaveTheChange and UpdateTogether are both
 		# used, that UpdateTogether's save hook will always run second.
@@ -153,7 +162,7 @@ def TrackChanges(cls):
 	
 	"""
 	
-	cls = BaseChangeTracker(cls)
+	_inject_stc(cls)
 	
 	def has_changed(self):
 		return (
@@ -242,7 +251,7 @@ def UpdateTogether(*groups):
 	"""
 	
 	def UpdateTogether(cls, groups=groups):
-		cls = BaseChangeTracker(cls)
+		_inject_stc(cls)
 		
 		cls._meta.update_together_groups = getattr(cls._meta, 'update_together_groups', []) + list(groups)
 		cls._meta.update_together = defaultdict(set)

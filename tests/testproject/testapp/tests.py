@@ -460,6 +460,35 @@ class EnlightenedModelTestCase(TestCase):
 			self.assertEquals(EnlightenedModel.holism.__class__, models.fields.related_descriptors.ManyToManyDescriptor)
 			self.assertEquals(EnlightenedModel.enlightenment.__class__, models.fields.related_descriptors.ForwardManyToOneDescriptor)
 	
+	def test_inheritance_is_honored(self):
+		m = self.create_initial()
+		m = EnlightenedModel.objects.get(pk=m.pk)
+		
+		self.assertEquals(getattr(m, 'init_started', None), True)
+		self.assertEquals(getattr(m, 'init_ended', None), True)
+		self.assertEquals(getattr(m, 'save_started', None), None)
+		self.assertEquals(getattr(m, 'save_ended', None), None)
+		self.assertEquals(getattr(m, 'refresh_from_db_started', None), None)
+		self.assertEquals(getattr(m, 'refresh_from_db_ended', None), None)
+		
+		m.save()
+		
+		self.assertEquals(getattr(m, 'init_started', None), True)
+		self.assertEquals(getattr(m, 'init_ended', None), True)
+		self.assertEquals(getattr(m, 'save_started', None), True)
+		self.assertEquals(getattr(m, 'save_ended', None), True)
+		self.assertEquals(getattr(m, 'refresh_from_db_started', None), None)
+		self.assertEquals(getattr(m, 'refresh_from_db_ended', None), None)
+		
+		m.refresh_from_db()
+		
+		self.assertEquals(getattr(m, 'init_started', None), True)
+		self.assertEquals(getattr(m, 'init_ended', None), True)
+		self.assertEquals(getattr(m, 'save_started', None), True)
+		self.assertEquals(getattr(m, 'save_ended', None), True)
+		self.assertEquals(getattr(m, 'refresh_from_db_started', None), True)
+		self.assertEquals(getattr(m, 'refresh_from_db_ended', None), True)
+	
 	def tearDown(self):
 		for file_name in os.listdir(self.uploads):
 			if file_name.endswith('.png'):
