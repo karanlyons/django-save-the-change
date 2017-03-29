@@ -60,8 +60,19 @@ Install Save The Change just like everything else:
 	$ pip install django-save-the-change
 
 
+
 Documentation
 =============
 
 Full documentation is available at
 `ReadTheDocs <https://django-save-the-change.readthedocs.org/en/latest/>`_.
+
+Or generate it locally here:
+
+.. code-block:: bash
+
+        $ git submodule update --init --recursive
+        $ cd docs/_build/html/
+        $ python manage.py runserver 
+        
+and see the docs live on http://localhost:8000
