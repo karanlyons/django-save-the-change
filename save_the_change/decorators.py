@@ -114,6 +114,8 @@ def _save_the_change_save_hook(instance, *args, **kwargs):
 		hasattr(instance, '_mutable_fields') and
 		'update_fields' not in kwargs and
 		not kwargs.get('force_insert', False) and
+		not kwargs.get('force_update', False) and
+		not kwargs.get('force_save', False) and
 		instance._meta.pk.attname not in instance._changed_fields
 	):
 		kwargs['update_fields'] = (
