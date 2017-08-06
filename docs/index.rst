@@ -81,7 +81,7 @@ your model:
 	from save_the_change.decorators import SaveTheChange
 	
 	@SaveTheChange
-	class Knight(models.model):
+	class Knight(models.Model):
 		...
 
 
@@ -133,7 +133,7 @@ For example:
 	
 	@SaveTheChange
 	@UpdateTogether(('height_feet', 'height_inches'))
-	class Knight(models.model):
+	class Knight(models.Model):
 		...
 
 Now if you ever make a change to either part of our Knight's height, *both*
