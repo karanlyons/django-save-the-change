@@ -100,8 +100,8 @@ class EnlightenedModelTestCase(TestCase):
 			self.new_values.pop('IP_address')
 		if django.VERSION >= (2, 0):
 			# Removed in Django 2.0
-			self.old_values.pop('comma_separated_integer')
-			self.new_values.pop('comma_separated_integer')
+			self.old_values.pop('comma_seperated_integer')
+			self.new_values.pop('comma_seperated_integer')
 		
 		self.old_public_values = {k: v for k, v in self.old_values.items() if not k.endswith('_id')}
 		self.new_public_values = {k: v for k, v in self.new_values.items() if not k.endswith('_id')}
