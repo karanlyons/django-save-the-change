@@ -56,7 +56,7 @@ class EnlightenedModel(models.Model):
 	date_time = models.DateTimeField()
 	decimal = models.DecimalField(max_digits=3, decimal_places=2)
 	email = models.EmailField()
-	enlightenment = models.ForeignKey(Enlightenment, related_name='enlightened_models')
+	enlightenment = models.ForeignKey(Enlightenment, related_name='enlightened_models', on_delete=models.CASCADE)
 	holism = models.ManyToManyField(Enlightenment)
 	file = models.FileField(upload_to='./')
 	file_path = models.FilePathField(path=os.path.join(__file__, '..', 'uploads'))
