@@ -13,6 +13,7 @@ from django.core.files import File
 from django.core.files.images import ImageFile
 from django.db import models
 from django.test import TestCase
+from unittest import skipIf
 
 from testproject.testapp.models import Enlightenment, EnlightenedModel, Disorder
 
@@ -92,6 +93,15 @@ class EnlightenedModelTestCase(TestCase):
 			'time': datetime.time(0, 0, 0),
 			'URL': 'https://github.com/karanlyons/django-save-the-change',
 		}
+		
+		if django.VERSION >= (1, 11):
+			# Removed in Django 1.11
+			self.old_values.pop('IP_address')
+			self.new_values.pop('IP_address')
+		if django.VERSION >= (2, 0):
+			# Removed in Django 2.0
+			self.old_values.pop('comma_seperated_integer')
+			self.new_values.pop('comma_seperated_integer')
 		
 		self.old_public_values = {k: v for k, v in self.old_values.items() if not k.endswith('_id')}
 		self.new_public_values = {k: v for k, v in self.new_values.items() if not k.endswith('_id')}
@@ -239,6 +249,7 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.assertEquals(m._mutable_fields, mutable_fields)
 	
+	@skipIf(django.VERSION >= (2, 0), "CommaSeparatedIntegerField removed in Django 2.0")
 	def test_touched_immutable_field_with_mutable_element__mutable_fields(self):
 		m = self.create_initial()
 		m.comma_seperated_integer = (1, [0], 1)
@@ -249,6 +260,7 @@ class EnlightenedModelTestCase(TestCase):
 		
 		self.assertEquals(m._mutable_fields, mutable_fields)
 	
+	@skipIf(django.VERSION >= (2, 0), "CommaSeparatedIntegerField removed in Django 2.0")
 	def test_touched_immutable_field_with_immutable_elements__changed_fields(self):
 		m = self.create_initial()
 		m.comma_seperated_integer = (1, 1, 1)

@@ -4,6 +4,7 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 
 import os
 
+import django
 from django.db import models
 
 from save_the_change.decorators import SaveTheChange, TrackChanges, UpdateTogether
@@ -50,19 +51,22 @@ class EnlightenedModel(models.Model):
 	big_integer = models.BigIntegerField()
 	boolean = models.BooleanField()
 	char = models.CharField(max_length=32)
-	comma_seperated_integer = models.CommaSeparatedIntegerField(max_length=32)
+	if django.VERSION < (2, 0):
+		comma_seperated_integer = models.CommaSeparatedIntegerField(max_length=32)
 	date = models.DateField()
 	date_time = models.DateTimeField()
 	decimal = models.DecimalField(max_digits=3, decimal_places=2)
 	email = models.EmailField()
-	enlightenment = models.ForeignKey(Enlightenment, related_name='enlightened_models')
+	enlightenment = models.ForeignKey(Enlightenment, related_name='enlightened_models', on_delete=models.CASCADE)
 	holism = models.ManyToManyField(Enlightenment)
 	file = models.FileField(upload_to='./')
 	file_path = models.FilePathField(path=os.path.join(__file__, '..', 'uploads'))
 	float = models.FloatField()
 	image = models.ImageField(upload_to='./')
 	integer = models.IntegerField()
-	IP_address = models.IPAddressField()
+	if django.VERSION < (1, 11):
+		# Removed in Django 1.11
+		IP_address = models.IPAddressField()
 	generic_IP = models.GenericIPAddressField()
 	null_boolean = models.NullBooleanField()
 	positive_integer = models.PositiveIntegerField()
