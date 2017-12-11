@@ -93,6 +93,11 @@ class EnlightenedModelTestCase(TestCase):
 			'URL': 'https://github.com/karanlyons/django-save-the-change',
 		}
 		
+		if django.VERSION >= (1, 11):
+			# Removed in Django 1.11
+			self.old_values.pop('IP_address')
+			self.new_values.pop('IP_address')
+		
 		self.old_public_values = {k: v for k, v in self.old_values.items() if not k.endswith('_id')}
 		self.new_public_values = {k: v for k, v in self.new_values.items() if not k.endswith('_id')}
 		
