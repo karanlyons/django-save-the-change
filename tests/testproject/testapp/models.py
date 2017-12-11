@@ -4,6 +4,7 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 
 import os
 
+import django
 from django.db import models
 
 from save_the_change.decorators import SaveTheChange, TrackChanges, UpdateTogether
@@ -62,7 +63,9 @@ class EnlightenedModel(models.Model):
 	float = models.FloatField()
 	image = models.ImageField(upload_to='./')
 	integer = models.IntegerField()
-	IP_address = models.IPAddressField()
+	if django.VERSION < (1, 11):
+		# Removed in Django 1.11
+		IP_address = models.IPAddressField()
 	generic_IP = models.GenericIPAddressField()
 	null_boolean = models.NullBooleanField()
 	positive_integer = models.PositiveIntegerField()
