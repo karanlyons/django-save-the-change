@@ -51,7 +51,8 @@ class EnlightenedModel(models.Model):
 	big_integer = models.BigIntegerField()
 	boolean = models.BooleanField()
 	char = models.CharField(max_length=32)
-	comma_seperated_integer = models.CommaSeparatedIntegerField(max_length=32)
+	if django.VERSION < (2, 0):
+		comma_seperated_integer = models.CommaSeparatedIntegerField(max_length=32)
 	date = models.DateField()
 	date_time = models.DateTimeField()
 	decimal = models.DecimalField(max_digits=3, decimal_places=2)
