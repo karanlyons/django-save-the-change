@@ -51,8 +51,12 @@ class ChangeTrackingDescriptor(object):
 		if self.name not in instance.__dict__['_mutable_fields']:
 			old_value = instance.__dict__.get(self.name, DoesNotExist)
 			
-			if old_value is DoesNotExist and self.django_descriptor and hasattr(self.django_descriptor, 'cache_name'):
-				old_value = instance.__dict__.get(self.django_descriptor.cache_name, DoesNotExist)
+			if old_value is DoesNotExist and self.django_descriptor:
+				if hasattr(self.django_descriptor, 'field') and hasattr(self.django_descriptor.field, 'get_cached_value'):
+					old_value = self.django_descriptor.field.get_cached_value(instance, DoesNotExist)
+				elif hasattr(self.django_descriptor, 'cache_name'):
+					# Django < 2.0
+					old_value = instance.__dict__.get(self.django_descriptor.cache_name, DoesNotExist)
 			
 			if old_value is not DoesNotExist:
 				if instance.__dict__['_changed_fields'].get(self.name, DoesNotExist) == value:
